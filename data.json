@@ -1,0 +1,17 @@
+{
+  "update_date": "2026-04-22",
+  "indicators": {
+    "pmi": 51.2,
+    "socialFinance": 9.8,
+    "cpi": 2.1,
+    "ppi": -0.5,
+    "m1m2": -1.2,
+    "bondYield": 2.65,
+    "turnover": 15.3,
+    "erp": 65,
+    "turnoverYoY": 15.3,
+    "growthPEPercentile": 45,
+    "dividendYield": 3.2,
+    "commodityMomentum": 2.5
+  }
+}
