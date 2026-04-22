@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>系统设置</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 自定义样式 -->
+    <style>
+        /* 页面动画 */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.5s ease-in-out;
+        }
+        
+        /* 表单输入框聚焦效果 */
+        input:focus, select:focus, textarea:focus {
+            transition: all 0.2s ease;
+        }
+        
+        /* 按钮悬停效果 */
+        button:hover {
+            transition: all 0.2s ease;
+        }
+        
+        /* 表格行悬停效果 */
+        tr:hover {
+            background-color: rgba(249, 250, 251, 1);
+            transition: background-color 0.2s ease;
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <div class="container mx-auto px-4 py-8">
+        <!-- 页面标题 -->
+        <header class="mb-8 flex justify-between items-center">
+            <h1 class="text-3xl font-bold text-gray-800">系统设置</h1>
+            <div>
+                <button id="back-btn" class="bg-gray-600 text-white py-2 px-4 rounded-md hover:bg-gray-700 transition-colors mr-2">
+                    返回首页
+                </button>
+                <button id="logout-btn" class="bg-red-600 text-white py-2 px-4 rounded-md hover:bg-red-700 transition-colors">
+                    退出登录
+                </button>
+            </div>
+        </header>
+
+        <!-- 权限验证 -->
+        <div id="auth-section" class="mb-6">
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <h2 class="text-xl font-semibold text-gray-800 mb-4">权限验证</h2>
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">管理员密码</label>
+                        <input type="password" id="admin-password" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <button id="login-btn" class="bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors">
+                        登录
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 设置内容（默认隐藏） -->
+        <div id="settings-content" class="hidden">
+            <!-- 配置矩阵设置 -->
+            <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+                <h2 class="text-xl font-semibold text-gray-800 mb-4">配置矩阵设置</h2>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead>
+                            <tr>
+                                <th class="px-4 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">阶段</th>
+                                <th class="px-4 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">成长股 (%)</th>
+                                <th class="px-4 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">红利股 (%)</th>
+                                <th class="px-4 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">商品ETF (%)</th>
+                                <th class="px-4 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">债券/现金 (%)</th>
+                                <th class="px-4 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">总仓位 (%)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="allocation-matrix-table" class="bg-white divide-y divide-gray-200">
+                            <!-- 配置矩阵将通过JavaScript动态添加 -->
+                        </tbody>
+                    </table>
+                </div>
+                <button id="save-allocation-btn" class="mt-4 bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700 transition-colors">
+                    保存配置矩阵
+                </button>
+            </div>
+
+            <!-- 阶段描述设置 -->
+            <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+                <h2 class="text-xl font-semibold text-gray-800 mb-4">阶段描述设置</h2>
+                <div id="stage-descriptions-container" class="space-y-4">
+                    <!-- 阶段描述将通过JavaScript动态添加 -->
+                </div>
+                <button id="save-stages-btn" class="mt-4 bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700 transition-colors">
+                    保存阶段描述
+                </button>
+            </div>
+
+            <!-- ETF标的池设置 -->
+            <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+                <h2 class="text-xl font-semibold text-gray-800 mb-4">ETF标的池设置</h2>
+                <div id="etf-pool-container" class="space-y-6">
+                    <!-- ETF标的池将通过JavaScript动态添加 -->
+                </div>
+                <button id="save-etf-btn" class="mt-4 bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700 transition-colors">
+                    保存ETF标的池
+                </button>
+            </div>
+
+            <!-- 数据获取设置 -->
+            <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+                <h2 class="text-xl font-semibold text-gray-800 mb-4">数据获取设置</h2>
+                <div class="space-y-4">
+                    <div>
+                        <label class="flex items-center">
+                            <input type="checkbox" id="auto-fetch" class="mr-2">
+                            <span class="text-sm font-medium text-gray-700">启用自动数据获取</span>
+                        </label>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">数据更新频率</label>
+                        <select id="fetch-frequency" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <option value="daily">每日</option>
+                            <option value="weekly">每周</option>
+                            <option value="monthly">每月</option>
+                        </select>
+                    </div>
+                    <button id="save-fetch-settings-btn" class="bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700 transition-colors">
+                        保存数据获取设置
+                    </button>
+                </div>
+            </div>
+
+            <!-- API接口设置 -->
+            <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+                <h2 class="text-xl font-semibold text-gray-800 mb-4">API接口设置</h2>
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">数据源选择</label>
+                        <select id="data-source" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <option value="akshare">AkShare (推荐)</option>
+                            <option value="tushare">Tushare</option>
+                            <option value="custom">自定义API</option>
+                        </select>
+                    </div>
+                    <div id="api-keys-container">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Tushare API Key (可选)</label>
+                            <input type="text" id="tushare-api-key" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="输入Tushare API Key">
+                        </div>
+                        <div class="mt-2">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">自定义API基础URL (可选)</label>
+                            <input type="text" id="custom-api-url" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="输入自定义API基础URL">
+                        </div>
+                    </div>
+                    <div class="mt-4">
+                        <h3 class="font-medium text-gray-700 mb-2">API接口状态</h3>
+                        <div id="api-status" class="text-sm text-gray-600">
+                            未测试
+                        </div>
+                    </div>
+                    <div class="flex space-x-2">
+                        <button id="test-api-btn" class="bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors">
+                            测试API连接
+                        </button>
+                        <button id="save-api-settings-btn" class="bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700 transition-colors">
+                            保存API设置
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 权限设置 -->
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <h2 class="text-xl font-semibold text-gray-800 mb-4">权限设置</h2>
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">管理员密码</label>
+                        <input type="password" id="new-admin-password" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <button id="save-auth-btn" class="bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700 transition-colors">
+                        保存密码
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 主要脚本 -->
+    <script src="settings.js"></script>
+</body>
+</html>

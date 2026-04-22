@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>自动宏观判定与资产配置系统</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 自定义样式 -->
+    <style>
+        /* 页面动画 */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.5s ease-in-out;
+        }
+        
+        /* 表单输入框聚焦效果 */
+        input:focus, select:focus {
+            transition: all 0.2s ease;
+        }
+        
+        /* 按钮悬停效果 */
+        button:hover {
+            transition: all 0.2s ease;
+        }
+        
+        /* 表格行悬停效果 */
+        tr:hover {
+            background-color: rgba(249, 250, 251, 1);
+            transition: background-color 0.2s ease;
+        }
+        
+        /* 加载动画 */
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #3b82f6;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* 响应式调整 */
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+            }
+            
+            h1 {
+                font-size: 1.75rem;
+            }
+            
+            h2 {
+                font-size: 1.25rem;
+            }
+        }
+        
+        /* 卡片阴影效果 */
+        .card {
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            transition: box-shadow 0.3s ease;
+        }
+        
+        .card:hover {
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+        
+        /* 进度条动画 */
+        @keyframes progress {
+            from { width: 0%; }
+            to { width: var(--progress-width); }
+        }
+        
+        .progress-bar {
+            animation: progress 1s ease-out forwards;
+        }
+        
+        /* 阶段指示器样式 */
+        .stage-indicator {
+            padding: 0.5rem 1rem;
+            border-radius: 0.25rem;
+            font-weight: 500;
+        }
+        
+        .stage-1 {
+            background-color: #dbeafe;
+            color: #1e40af;
+        }
+        
+        .stage-2 {
+            background-color: #d1fae5;
+            color: #065f46;
+        }
+        
+        .stage-3 {
+            background-color: #fef3c7;
+            color: #92400e;
+        }
+        
+        .stage-4 {
+            background-color: #fee2e2;
+            color: #991b1b;
+        }
+        
+        .stage-5 {
+            background-color: #f3e8ff;
+            color: #7e22ce;
+        }
+        
+        .stage-6 {
+            background-color: #e0e7ff;
+            color: #3730a3;
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <div class="container mx-auto px-4 py-8">
+        <!-- 页面标题 -->
+        <header class="mb-8 text-center">
+            <h1 class="text-3xl font-bold text-gray-800 mb-2">自动宏观判定与资产配置系统</h1>
+            <p class="text-gray-600">基于普林格六阶段理论的量化决策工具</p>
+        </header>
+
+        <!-- 主内容区域 -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- 左侧：数据输入区 -->
+            <div class="lg:col-span-1">
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <h2 class="text-xl font-semibold text-gray-800 mb-4">数据输入区</h2>
+                    <form id="data-form">
+                        <div class="space-y-4">
+                            <!-- 经济增长维度 -->
+                            <div class="border-l-4 border-blue-500 pl-4">
+                                <h3 class="font-medium text-blue-700 mb-2">经济增长 (Growth)</h3>
+                                <div class="space-y-3">
+                                    <div>
+                                        <div class="flex justify-between">
+                                            <label class="block text-sm font-medium text-gray-700 mb-1">制造业 PMI</label>
+                                            <span class="text-xs text-gray-500">来源: AkShare</span>
+                                        </div>
+                                        <input type="number" id="pmi" step="0.1" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                        <div class="text-xs text-gray-500 mt-1">获取方法: ak.macro_china_pmi()</div>
+                                    </div>
+                                    <div>
+                                        <div class="flex justify-between">
+                                            <label class="block text-sm font-medium text-gray-700 mb-1">社融存量同比增速 (%)</label>
+                                            <span class="text-xs text-gray-500">来源: AkShare</span>
+                                        </div>
+                                        <input type="number" id="social-finance" step="0.1" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                        <div class="text-xs text-gray-500 mt-1">获取方法: ak.macro_china_shrzgm()</div>
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-1">社融趋势</label>
+                                        <select id="sf-trend" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                            <option value="up">回升</option>
+                                            <option value="down">下降</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- 通货膨胀维度 -->
+                            <div class="border-l-4 border-yellow-500 pl-4">
+                                <h3 class="font-medium text-yellow-700 mb-2">通货膨胀 (Inflation)</h3>
+                                <div class="space-y-3">
+                                    <div>
+                                        <div class="flex justify-between">
+                                            <label class="block text-sm font-medium text-gray-700 mb-1">CPI 同比 (%)</label>
+                                            <span class="text-xs text-gray-500">来源: AkShare</span>
+                                        </div>
+                                        <input type="number" id="cpi" step="0.1" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500">
+                                        <div class="text-xs text-gray-500 mt-1">获取方法: ak.macro_china_cpi()</div>
+                                    </div>
+                                    <div>
+                                        <div class="flex justify-between">
+                                            <label class="block text-sm font-medium text-gray-700 mb-1">PPI 同比 (%)</label>
+                                            <span class="text-xs text-gray-500">来源: AkShare</span>
+                                        </div>
+                                        <input type="number" id="ppi" step="0.1" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500">
+                                        <div class="text-xs text-gray-500 mt-1">获取方法: ak.macro_china_ppi()</div>
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-1">PPI 趋势</label>
+                                        <select id="ppi-trend" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500">
+                                            <option value="up">上行</option>
+                                            <option value="down">下行</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- 资金/流动性维度 -->
+                            <div class="border-l-4 border-green-500 pl-4">
+                                <h3 class="font-medium text-green-700 mb-2">资金/流动性 (Liquidity)</h3>
+                                <div class="space-y-3">
+                                    <div>
+                                        <div class="flex justify-between">
+                                            <label class="block text-sm font-medium text-gray-700 mb-1">M1-M2 剪刀差 (%)</label>
+                                            <span class="text-xs text-gray-500">来源: AkShare</span>
+                                        </div>
+                                        <input type="number" id="m1m2" step="0.1" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500">
+                                        <div class="text-xs text-gray-500 mt-1">获取方法: ak.macro_china_money_supply()</div>
+                                    </div>
+                                    <div>
+                                        <div class="flex justify-between">
+                                            <label class="block text-sm font-medium text-gray-700 mb-1">10 年期国债收益率 (%)</label>
+                                            <span class="text-xs text-gray-500">来源: AkShare</span>
+                                        </div>
+                                        <input type="number" id="bond-yield" step="0.01" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500">
+                                        <div class="text-xs text-gray-500 mt-1">获取方法: ak.bond_zh_us_rate()</div>
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-1">国债收益率趋势</label>
+                                        <select id="bond-trend" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500">
+                                            <option value="up">上行</option>
+                                            <option value="down">下行</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- 市场情绪维度 -->
+                            <div class="border-l-4 border-red-500 pl-4">
+                                <h3 class="font-medium text-red-700 mb-2">市场情绪 (Sentiment)</h3>
+                                <div class="space-y-3">
+                                    <div>
+                                        <div class="flex justify-between">
+                                            <label class="block text-sm font-medium text-gray-700 mb-1">全 A 成交额同比增速 (%)</label>
+                                            <span class="text-xs text-gray-500">来源: AkShare</span>
+                                        </div>
+                                        <input type="number" id="turnover" step="1" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500">
+                                        <div class="text-xs text-gray-500 mt-1">获取方法: ak.stock_zh_index_hist() 计算 252 日同比</div>
+                                    </div>
+                                    <div>
+                                        <div class="flex justify-between">
+                                            <label class="block text-sm font-medium text-gray-700 mb-1">股债利差 (ERP) 分位数 (%)</label>
+                                            <span class="text-xs text-gray-500">来源: 计算</span>
+                                        </div>
+                                        <input type="number" id="erp" step="1" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500">
+                                        <div class="text-xs text-gray-500 mt-1">获取方法: (中证全指盈利收益率 - 国债收益率)</div>
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-1">成交额趋势</label>
+                                        <select id="turnover-trend" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500">
+                                            <option value="up">加速</option>
+                                            <option value="stable">稳定</option>
+                                            <option value="down">减速</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- ETF标的数据 -->
+                            <div class="border-l-4 border-purple-500 pl-4">
+                                <h3 class="font-medium text-purple-700 mb-2">ETF标的数据</h3>
+                                <div class="space-y-3">
+                                    <div>
+                                        <div class="flex justify-between">
+                                            <label class="block text-sm font-medium text-gray-700 mb-1">成长股ETF PE分位数 (%)</label>
+                                            <span class="text-xs text-gray-500">来源: AkShare/Tushare</span>
+                                        </div>
+                                        <input type="number" id="growth-pe" step="1" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500">
+                                        <div class="text-xs text-gray-500 mt-1">获取方法: 从ETF历史数据计算</div>
+                                    </div>
+                                    <div>
+                                        <div class="flex justify-between">
+                                            <label class="block text-sm font-medium text-gray-700 mb-1">红利股ETF股息率 (%)</label>
+                                            <span class="text-xs text-gray-500">来源: AkShare/Tushare</span>
+                                        </div>
+                                        <input type="number" id="dividend-dy" step="0.01" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500">
+                                        <div class="text-xs text-gray-500 mt-1">获取方法: 从ETF历史数据计算</div>
+                                    </div>
+                                    <div>
+                                        <div class="flex justify-between">
+                                            <label class="block text-sm font-medium text-gray-700 mb-1">商品ETF动量得分</label>
+                                            <span class="text-xs text-gray-500">来源: yfinance</span>
+                                        </div>
+                                        <input type="number" id="commodity-momentum" step="0.01" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500">
+                                        <div class="text-xs text-gray-500 mt-1">获取方法: 从商品ETF历史数据计算</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- 数据获取状态 -->
+                            <div class="mb-4">
+                                <div id="fetch-status" class="text-sm text-gray-600">
+                                    数据获取状态：未获取
+                                </div>
+                                <div id="last-fetch-time" class="text-xs text-gray-500">
+                                    最后获取时间：-  
+                                </div>
+                            </div>
+
+                            <!-- 提交按钮 -->
+                            <div class="pt-4">
+                                <button type="button" id="auto-fetch-btn" class="w-full bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700 transition-colors mb-2">
+                                    自动获取数据
+                                </button>
+                                <button type="button" id="calculate-btn" class="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors">
+                                    计算配置
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- 右侧：结果展示区 -->
+            <div class="lg:col-span-2">
+                <!-- 逻辑引擎结果 -->
+                <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+                    <h2 class="text-xl font-semibold text-gray-800 mb-4">逻辑引擎结果</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="border border-gray-200 rounded-md p-4">
+                            <h3 class="font-medium text-gray-700 mb-2">四维得分</h3>
+                            <div class="space-y-2">
+                                <div class="flex justify-between">
+                                    <span class="text-blue-700">经济增长 (G):</span>
+                                    <span id="growth-score" class="font-medium">0</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-yellow-700">通货膨胀 (I):</span>
+                                    <span id="inflation-score" class="font-medium">0</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-green-700">流动性 (L):</span>
+                                    <span id="liquidity-score" class="font-medium">0</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-red-700">市场情绪 (S):</span>
+                                    <span id="sentiment-score" class="font-medium">0</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="border border-gray-200 rounded-md p-4">
+                            <h3 class="font-medium text-gray-700 mb-2">当前宏观阶段</h3>
+                            <div class="text-center py-4">
+                                <div id="stage-result" class="text-2xl font-bold text-blue-600">--</div>
+                                <div id="stage-desc" class="text-gray-600 mt-2">--</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 资产配置结果 -->
+                <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+                    <h2 class="text-xl font-semibold text-gray-800 mb-4">资产配置建议</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <canvas id="allocation-chart" height="250"></canvas>
+                        </div>
+                        <div class="space-y-3">
+                            <div class="flex justify-between items-center">
+                                <span class="text-gray-700">成长股:</span>
+                                <div class="flex items-center">
+                                    <span id="growth-stock" class="font-medium mr-2">0%</span>
+                                    <div class="w-24 bg-gray-200 rounded-full h-2">
+                                        <div id="growth-stock-bar" class="bg-blue-600 h-2 rounded-full" style="width: 0%"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="text-gray-700">红利股:</span>
+                                <div class="flex items-center">
+                                    <span id="dividend-stock" class="font-medium mr-2">0%</span>
+                                    <div class="w-24 bg-gray-200 rounded-full h-2">
+                                        <div id="dividend-stock-bar" class="bg-green-600 h-2 rounded-full" style="width: 0%"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="text-gray-700">商品 ETF:</span>
+                                <div class="flex items-center">
+                                    <span id="commodity-etf" class="font-medium mr-2">0%</span>
+                                    <div class="w-24 bg-gray-200 rounded-full h-2">
+                                        <div id="commodity-etf-bar" class="bg-yellow-600 h-2 rounded-full" style="width: 0%"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="text-gray-700">债券/现金:</span>
+                                <div class="flex items-center">
+                                    <span id="bond-cash" class="font-medium mr-2">0%</span>
+                                    <div class="w-24 bg-gray-200 rounded-full h-2">
+                                        <div id="bond-cash-bar" class="bg-purple-600 h-2 rounded-full" style="width: 0%"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="flex justify-between items-center pt-2 border-t border-gray-200">
+                                <span class="font-medium text-gray-800">总仓位建议:</span>
+                                <span id="total-position" class="font-bold text-lg text-blue-600">0%</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ETF标的详细配置 -->
+                <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+                    <h2 class="text-xl font-semibold text-gray-800 mb-4">ETF标的详细配置</h2>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead>
+                                <tr>
+                                    <th class="px-4 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">资产大类</th>
+                                    <th class="px-4 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">标的代码</th>
+                                    <th class="px-4 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">标的名称</th>
+                                    <th class="px-4 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">基准权重</th>
+                                    <th class="px-4 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">因子得分</th>
+                                    <th class="px-4 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">调整后权重</th>
+                                    <th class="px-4 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">调整幅度</th>
+                                </tr>
+                            </thead>
+                            <tbody id="etf-table" class="bg-white divide-y divide-gray-200">
+                                <!-- ETF标的配置将通过JavaScript动态添加 -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- 多因子评分结果 -->
+                <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+                    <h2 class="text-xl font-semibold text-gray-800 mb-4">多因子评分结果</h2>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead>
+                                <tr>
+                                    <th class="px-4 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">标的代码</th>
+                                    <th class="px-4 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">证券简称</th>
+                                    <th class="px-4 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">估值因子</th>
+                                    <th class="px-4 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">动量因子</th>
+                                    <th class="px-4 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">风险因子</th>
+                                    <th class="px-4 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">综合得分</th>
+                                </tr>
+                            </thead>
+                            <tbody id="factor-table" class="bg-white divide-y divide-gray-200">
+                                <!-- 多因子评分结果将通过JavaScript动态添加 -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- 历史记录 -->
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <h2 class="text-xl font-semibold text-gray-800 mb-4">历史记录</h2>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead>
+                                <tr>
+                                    <th class="px-4 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">日期</th>
+                                    <th class="px-4 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">宏观阶段</th>
+                                    <th class="px-4 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">成长股</th>
+                                    <th class="px-4 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">红利股</th>
+                                    <th class="px-4 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">商品 ETF</th>
+                                    <th class="px-4 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">债券/现金</th>
+                                    <th class="px-4 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">总仓位</th>
+                                </tr>
+                            </thead>
+                            <tbody id="history-table" class="bg-white divide-y divide-gray-200">
+                                <!-- 历史记录将通过JavaScript动态添加 -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 设置链接 -->
+        <div class="flex justify-end mb-8">
+            <a href="settings.html" class="bg-gray-600 text-white py-2 px-4 rounded-md hover:bg-gray-700 transition-colors">
+                系统设置
+            </a>
+        </div>
+
+        <!-- 页脚 -->
+        <footer class="mt-8 text-center text-gray-600 text-sm">
+            <p>© 2026 自动宏观判定与资产配置系统 | 基于普林格六阶段理论</p>
+        </footer>
+    </div>
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- 数据获取模块 -->
+    <script src="data-fetch.js"></script>
+    <!-- 主要脚本 -->
+    <script src="script.js"></script>
+</body>
+</html>

@@ -1,0 +1,115 @@
+/* 自定义样式 */
+
+/* 页面动画 */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.fade-in {
+    animation: fadeIn 0.5s ease-in-out;
+}
+
+/* 表单输入框聚焦效果 */
+input:focus, select:focus {
+    transition: all 0.2s ease;
+}
+
+/* 按钮悬停效果 */
+button:hover {
+    transition: all 0.2s ease;
+}
+
+/* 表格行悬停效果 */
+tr:hover {
+    background-color: rgba(249, 250, 251, 1);
+    transition: background-color 0.2s ease;
+}
+
+/* 加载动画 */
+.loading {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border: 2px solid #f3f3f3;
+    border-top: 2px solid #3b82f6;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* 响应式调整 */
+@media (max-width: 768px) {
+    .container {
+        padding: 1rem;
+    }
+    
+    h1 {
+        font-size: 1.75rem;
+    }
+    
+    h2 {
+        font-size: 1.25rem;
+    }
+}
+
+/* 卡片阴影效果 */
+.card {
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    transition: box-shadow 0.3s ease;
+}
+
+.card:hover {
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+/* 进度条动画 */
+@keyframes progress {
+    from { width: 0%; }
+    to { width: var(--progress-width); }
+}
+
+.progress-bar {
+    animation: progress 1s ease-out forwards;
+}
+
+/* 阶段指示器样式 */
+.stage-indicator {
+    padding: 0.5rem 1rem;
+    border-radius: 0.25rem;
+    font-weight: 500;
+}
+
+.stage-1 {
+    background-color: #dbeafe;
+    color: #1e40af;
+}
+
+.stage-2 {
+    background-color: #d1fae5;
+    color: #065f46;
+}
+
+.stage-3 {
+    background-color: #fef3c7;
+    color: #92400e;
+}
+
+.stage-4 {
+    background-color: #fee2e2;
+    color: #991b1b;
+}
+
+.stage-5 {
+    background-color: #f3e8ff;
+    color: #7e22ce;
+}
+
+.stage-6 {
+    background-color: #e0e7ff;
+    color: #3730a3;
+}
