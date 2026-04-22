@@ -9,9 +9,15 @@ class MacroDataFetcher {
     // 从data.json文件获取数据
     async fetchDataFromJson() {
         try {
-            const response = await fetch('data.json');
+            // 首先尝试从当前目录获取
+            let response = await fetch('data.json');
             if (!response.ok) {
-                throw new Error('获取数据文件失败');
+                // 如果失败，尝试从GitHub原始文件URL获取
+                const githubRawUrl = 'https://raw.githubusercontent.com/wutian1933-hub/MacroAssetAllocation/master/data.json';
+                response = await fetch(githubRawUrl);
+                if (!response.ok) {
+                    throw new Error('获取数据文件失败');
+                }
             }
             const data = await response.json();
             return { success: true, data: data };
