@@ -1,0 +1,38 @@
+# 编辑器相关
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# 操作系统相关
+.DS_Store
+Thumbs.db
+
+# 浏览器相关
+*.localstorage
+*.sessionstorage
+
+# 日志文件
+*.log
+
+# 构建产物（如果有构建过程）
+/dist
+/build
+
+# 依赖包（如果使用 npm）
+/node_modules
+
+# 环境变量文件
+.env
+.env.local
+.env.*.local
+
+# 测试相关
+/coverage
+.nyc_output
+
+# 其他临时文件
+*.tmp
+*.temp
+.cache
