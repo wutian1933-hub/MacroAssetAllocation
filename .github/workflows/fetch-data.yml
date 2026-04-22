@@ -6,6 +6,9 @@ on:
     - cron: '0 0 * * *'  # UTC时间，对应北京时间8点
   workflow_dispatch:  # 允许手动触发
 
+permissions:
+  contents: write
+
 jobs:
   fetch-data:
     runs-on: ubuntu-latest
