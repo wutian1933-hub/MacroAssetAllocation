@@ -1,17 +1,39 @@
 {
   "update_date": "2026-04-30",
   "indicators": {
-    "pmi": 51.2,
-    "socialFinance": 9.8,
-    "cpi": 2.1,
-    "ppi": -0.5,
-    "m1m2": -1.2,
-    "bondYield": 2.65,
+    "pmi": 50.3,
+    "socialFinance": -22.56,
+    "cpi": 1.0,
+    "ppi": 0.5,
+    "m1m2": -3.4,
+    "bondYield": 1.7473,
     "turnover": 15.3,
-    "erp": 65,
     "turnoverYoY": 15.3,
+    "erp": 65,
     "growthPEPercentile": 45,
     "dividendYield": 3.2,
     "commodityMomentum": 2.5
+  },
+  "sources": {
+    "pmi": "akshare",
+    "socialFinance": "akshare",
+    "cpi": "akshare",
+    "ppi": "akshare",
+    "m1m2": "akshare",
+    "bondYield": "akshare",
+    "turnover": "default",
+    "turnoverYoY": "default",
+    "erp": "default",
+    "growthPEPercentile": "default",
+    "dividendYield": "default",
+    "commodityMomentum": "default"
+  },
+  "errors": {
+    "turnover": "全A成交额同比增速暂未实现自动计算，使用默认值",
+    "turnoverYoY": "全A成交额同比增速暂未实现自动计算，使用默认值",
+    "erp": "股债利差ERP暂未实现自动计算，使用默认值",
+    "growthPEPercentile": "成长股ETF PE分位数暂未实现自动计算，使用默认值",
+    "dividendYield": "红利股ETF股息率暂未实现自动计算，使用默认值",
+    "commodityMomentum": "商品ETF动量得分暂未实现自动计算，使用默认值"
   }
 }
