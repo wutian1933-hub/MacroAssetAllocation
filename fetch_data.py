@@ -23,6 +23,7 @@ DEFAULT_INDICATORS = {
     "ppi": -0.5,
     "m1m2": -1.2,
     "bondYield": 2.65,
+    "turnoverMomentum": 15.3,
     "turnover": 15.3,
     "turnoverYoY": 15.3,
     "erp": 65,
@@ -99,6 +100,53 @@ def extract_bond_yield(df: pd.DataFrame) -> float:
     return _latest_non_null(df, "中国国债收益率10年")
 
 
+def _rolling_qoq(values: pd.Series, window: int) -> float:
+    if len(values) < window * 2:
+        raise ValueError(f"成交金额数据不足 {window * 2} 个交易日，无法计算 {window} 日滚动环比")
+
+    recent = values.iloc[-window:].mean()
+    prior = values.iloc[-window * 2 : -window].mean()
+    if pd.isna(recent) or pd.isna(prior) or prior == 0:
+        raise ValueError(f"{window} 日成交金额均值不可用")
+    return float(recent / prior - 1)
+
+
+def extract_turnover_momentum(df: pd.DataFrame) -> float:
+    if df.empty:
+        raise ValueError("数据为空")
+
+    amount_column = next((column for column in ("成交金额", "成交额", "amount") if column in df.columns), None)
+    if amount_column is None:
+        raise KeyError(f"缺少可用成交额列; 当前列: {', '.join(map(str, df.columns))}")
+
+    if "日期" in df.columns:
+        df = df.copy()
+        df["日期"] = pd.to_datetime(df["日期"], errors="coerce")
+        df = df.sort_values("日期", ascending=True)
+    elif "date" in df.columns:
+        df = df.copy()
+        df["date"] = pd.to_datetime(df["date"], errors="coerce")
+        df = df.sort_values("date", ascending=True)
+
+    amounts = pd.to_numeric(df[amount_column], errors="coerce").dropna()
+    amounts = amounts[amounts > 0]
+    if len(amounts) < 40:
+        raise ValueError("成交金额数据不足 40 个交易日，无法计算 5日/20日滚动环比动量")
+
+    momentum = 0.7 * _rolling_qoq(amounts, 5) + 0.3 * _rolling_qoq(amounts, 20)
+    return round(momentum * 100, 2)
+
+
+def fetch_csi_all_share_history(ak_module) -> pd.DataFrame:
+    end_date = datetime.datetime.now()
+    start_date = end_date - datetime.timedelta(days=180)
+    return ak_module.stock_zh_index_hist_csindex(
+        symbol="000985",
+        start_date=start_date.strftime("%Y%m%d"),
+        end_date=end_date.strftime("%Y%m%d"),
+    )
+
+
 def fetch_indicator(
     *,
     key: str,
@@ -133,6 +181,12 @@ def build_data(ak_module) -> dict:
         ("ppi", "PPI同比", ak_module.macro_china_ppi, extract_ppi),
         ("m1m2", "M1-M2剪刀差", ak_module.macro_china_money_supply, extract_m1m2),
         ("bondYield", "10年期国债收益率", ak_module.bond_zh_us_rate, extract_bond_yield),
+        (
+            "turnoverMomentum",
+            "中证全指成交额滚动环比动量",
+            lambda: fetch_csi_all_share_history(ak_module),
+            extract_turnover_momentum,
+        ),
     ]
 
     indicators: dict[str, float] = {}
@@ -152,10 +206,15 @@ def build_data(ak_module) -> dict:
         if result.error:
             errors[result.key] = result.error
 
+    # 兼容旧前端字段名：旧 turnover/turnoverYoY 输入框现在承载成交额动量。
+    for legacy_key in ("turnover", "turnoverYoY"):
+        indicators[legacy_key] = indicators["turnoverMomentum"]
+        sources[legacy_key] = sources["turnoverMomentum"]
+        if "turnoverMomentum" in errors:
+            errors[legacy_key] = errors["turnoverMomentum"]
+
     # 尚未实现实时计算的因子保持默认值，但明确标注来源。
     manual_defaults = {
-        "turnover": "全A成交额同比增速",
-        "turnoverYoY": "全A成交额同比增速",
         "erp": "股债利差ERP",
         "growthPEPercentile": "成长股ETF PE分位数",
         "dividendYield": "红利股ETF股息率",
