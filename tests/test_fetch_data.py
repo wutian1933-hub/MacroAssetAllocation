@@ -69,6 +69,27 @@ class FetchDataExtractionTests(unittest.TestCase):
         self.assertIn("制造业PMI", result.error)
         self.assertIn("缺少可用列", result.error)
 
+    def test_extract_turnover_momentum_uses_weighted_rolling_qoq(self):
+        amounts = list(range(100, 140))
+        df = pd.DataFrame(
+            {
+                "日期": pd.date_range("2026-01-01", periods=40, freq="B"),
+                "成交金额": amounts,
+            }
+        )
+
+        recent_5 = pd.Series(amounts[-5:]).mean()
+        prior_5 = pd.Series(amounts[-10:-5]).mean()
+        recent_20 = pd.Series(amounts[-20:]).mean()
+        prior_20 = pd.Series(amounts[-40:-20]).mean()
+        expected = round(
+            (0.7 * (recent_5 / prior_5 - 1) + 0.3 * (recent_20 / prior_20 - 1))
+            * 100,
+            2,
+        )
+
+        self.assertEqual(fetch_data.extract_turnover_momentum(df), expected)
+
 
 if __name__ == "__main__":
     unittest.main()
