@@ -26,13 +26,25 @@ class MacroDataFetcher {
             return { success: false, error: error.message };
         }
     }
+
+    getIndicator(indicators, keys, defaultValue) {
+        for (const key of keys) {
+            if (Object.prototype.hasOwnProperty.call(indicators || {}, key)) {
+                const value = indicators[key];
+                if (value !== null && value !== undefined && value !== '') {
+                    return value;
+                }
+            }
+        }
+        return defaultValue;
+    }
     
     // 获取制造业PMI
     async getPMI() {
         try {
             const result = await this.fetchDataFromJson();
-            if (result.success && result.data && result.data.indicators && result.data.indicators.pmi) {
-                return result.data.indicators.pmi;
+            if (result.success && result.data && result.data.indicators) {
+                return this.getIndicator(result.data.indicators, ['pmi'], 51.2);
             }
             return { value: 51.2, error: !result.success ? result.error : null }; // 默认数据
         } catch (error) {
@@ -41,26 +53,35 @@ class MacroDataFetcher {
         }
     }
     
-    // 获取全A成交额同比增速
-    async getTurnoverYoY() {
+    // 获取中证全指成交额滚动环比动量
+    async getTurnoverMomentum() {
         try {
             const result = await this.fetchDataFromJson();
-            if (result.success && result.data && result.data.indicators && result.data.indicators.turnoverYoY) {
-                return result.data.indicators.turnoverYoY;
+            if (result.success && result.data && result.data.indicators) {
+                return this.getIndicator(
+                    result.data.indicators,
+                    ['turnoverMomentum', 'turnover', 'turnoverYoY'],
+                    15.3
+                );
             }
             return { value: 15.3, error: !result.success ? result.error : null }; // 默认数据
         } catch (error) {
-            console.error('获取全A成交额同比增速失败:', error);
+            console.error('获取中证全指成交额动量失败:', error);
             return { value: 15.3, error: error.message }; // 默认数据
         }
+    }
+
+    // 兼容旧方法名
+    async getTurnoverYoY() {
+        return this.getTurnoverMomentum();
     }
     
     // 获取成长股ETF PE分位数
     async getGrowthPEPercentile() {
         try {
             const result = await this.fetchDataFromJson();
-            if (result.success && result.data && result.data.indicators && result.data.indicators.growthPEPercentile) {
-                return result.data.indicators.growthPEPercentile;
+            if (result.success && result.data && result.data.indicators) {
+                return this.getIndicator(result.data.indicators, ['growthPEPercentile'], 45);
             }
             return { value: 45, error: !result.success ? result.error : null }; // 默认数据
         } catch (error) {
@@ -73,8 +94,8 @@ class MacroDataFetcher {
     async getDividendYield() {
         try {
             const result = await this.fetchDataFromJson();
-            if (result.success && result.data && result.data.indicators && result.data.indicators.dividendYield) {
-                return result.data.indicators.dividendYield;
+            if (result.success && result.data && result.data.indicators) {
+                return this.getIndicator(result.data.indicators, ['dividendYield'], 3.2);
             }
             return { value: 3.2, error: !result.success ? result.error : null }; // 默认数据
         } catch (error) {
@@ -87,8 +108,8 @@ class MacroDataFetcher {
     async getCommodityMomentum() {
         try {
             const result = await this.fetchDataFromJson();
-            if (result.success && result.data && result.data.indicators && result.data.indicators.commodityMomentum) {
-                return result.data.indicators.commodityMomentum;
+            if (result.success && result.data && result.data.indicators) {
+                return this.getIndicator(result.data.indicators, ['commodityMomentum'], 2.5);
             }
             return { value: 2.5, error: !result.success ? result.error : null }; // 默认数据
         } catch (error) {
@@ -101,8 +122,8 @@ class MacroDataFetcher {
     async getSocialFinance() {
         try {
             const result = await this.fetchDataFromJson();
-            if (result.success && result.data && result.data.indicators && result.data.indicators.socialFinance) {
-                return result.data.indicators.socialFinance;
+            if (result.success && result.data && result.data.indicators) {
+                return this.getIndicator(result.data.indicators, ['socialFinance'], 9.8);
             }
             return { value: 9.8, error: !result.success ? result.error : null }; // 默认数据
         } catch (error) {
@@ -115,8 +136,8 @@ class MacroDataFetcher {
     async getCPI() {
         try {
             const result = await this.fetchDataFromJson();
-            if (result.success && result.data && result.data.indicators && result.data.indicators.cpi) {
-                return result.data.indicators.cpi;
+            if (result.success && result.data && result.data.indicators) {
+                return this.getIndicator(result.data.indicators, ['cpi'], 2.1);
             }
             return { value: 2.1, error: !result.success ? result.error : null }; // 默认数据
         } catch (error) {
@@ -129,8 +150,8 @@ class MacroDataFetcher {
     async getPPI() {
         try {
             const result = await this.fetchDataFromJson();
-            if (result.success && result.data && result.data.indicators && result.data.indicators.ppi) {
-                return result.data.indicators.ppi;
+            if (result.success && result.data && result.data.indicators) {
+                return this.getIndicator(result.data.indicators, ['ppi'], -0.5);
             }
             return { value: -0.5, error: !result.success ? result.error : null }; // 默认数据
         } catch (error) {
@@ -143,8 +164,8 @@ class MacroDataFetcher {
     async getM1M2() {
         try {
             const result = await this.fetchDataFromJson();
-            if (result.success && result.data && result.data.indicators && result.data.indicators.m1m2) {
-                return result.data.indicators.m1m2;
+            if (result.success && result.data && result.data.indicators) {
+                return this.getIndicator(result.data.indicators, ['m1m2'], -1.2);
             }
             return { value: -1.2, error: !result.success ? result.error : null }; // 默认数据
         } catch (error) {
@@ -157,8 +178,8 @@ class MacroDataFetcher {
     async getBondYield() {
         try {
             const result = await this.fetchDataFromJson();
-            if (result.success && result.data && result.data.indicators && result.data.indicators.bondYield) {
-                return result.data.indicators.bondYield;
+            if (result.success && result.data && result.data.indicators) {
+                return this.getIndicator(result.data.indicators, ['bondYield'], 2.65);
             }
             return { value: 2.65, error: !result.success ? result.error : null }; // 默认数据
         } catch (error) {
@@ -167,26 +188,17 @@ class MacroDataFetcher {
         }
     }
     
-    // 获取全A成交额同比
+    // 获取中证全指成交额滚动环比动量
     async getTurnover() {
-        try {
-            const result = await this.fetchDataFromJson();
-            if (result.success && result.data && result.data.indicators && result.data.indicators.turnover) {
-                return result.data.indicators.turnover;
-            }
-            return { value: 15.3, error: !result.success ? result.error : null }; // 默认数据
-        } catch (error) {
-            console.error('获取成交额失败:', error);
-            return { value: 15.3, error: error.message }; // 默认数据
-        }
+        return this.getTurnoverMomentum();
     }
     
     // 获取股债利差ERP
     async getERP() {
         try {
             const result = await this.fetchDataFromJson();
-            if (result.success && result.data && result.data.indicators && result.data.indicators.erp) {
-                return result.data.indicators.erp;
+            if (result.success && result.data && result.data.indicators) {
+                return this.getIndicator(result.data.indicators, ['erp'], 65);
             }
             return { value: 65, error: !result.success ? result.error : null }; // 默认数据
         } catch (error) {
@@ -198,25 +210,24 @@ class MacroDataFetcher {
     // 获取所有宏观数据
     async getAllMacroData() {
         // 并行获取所有数据
-        const [pmiResult, socialFinanceResult, cpiResult, ppiResult, m1m2Result, bondYieldResult, turnoverResult, erpResult, turnoverYoYResult, growthPEPercentileResult, dividendYieldResult, commodityMomentumResult] = await Promise.all([
+        const [pmiResult, socialFinanceResult, cpiResult, ppiResult, m1m2Result, bondYieldResult, turnoverMomentumResult, erpResult, growthPEPercentileResult, dividendYieldResult, commodityMomentumResult] = await Promise.all([
             this.getPMI(),
             this.getSocialFinance(),
             this.getCPI(),
             this.getPPI(),
             this.getM1M2(),
             this.getBondYield(),
-            this.getTurnover(),
+            this.getTurnoverMomentum(),
             this.getERP(),
-            this.getTurnoverYoY(),
             this.getGrowthPEPercentile(),
             this.getDividendYield(),
             this.getCommodityMomentum()
         ]);
-        
+
         // 提取值并检查错误
-        const results = [pmiResult, socialFinanceResult, cpiResult, ppiResult, m1m2Result, bondYieldResult, turnoverResult, erpResult, turnoverYoYResult, growthPEPercentileResult, dividendYieldResult, commodityMomentumResult];
+        const results = [pmiResult, socialFinanceResult, cpiResult, ppiResult, m1m2Result, bondYieldResult, turnoverMomentumResult, erpResult, growthPEPercentileResult, dividendYieldResult, commodityMomentumResult];
         const hasError = results.some(result => typeof result === 'object' && result.error);
-        
+
         // 提取值
         const pmi = typeof pmiResult === 'object' ? pmiResult.value : pmiResult;
         const socialFinance = typeof socialFinanceResult === 'object' ? socialFinanceResult.value : socialFinanceResult;
@@ -224,9 +235,8 @@ class MacroDataFetcher {
         const ppi = typeof ppiResult === 'object' ? ppiResult.value : ppiResult;
         const m1m2 = typeof m1m2Result === 'object' ? m1m2Result.value : m1m2Result;
         const bondYield = typeof bondYieldResult === 'object' ? bondYieldResult.value : bondYieldResult;
-        const turnover = typeof turnoverResult === 'object' ? turnoverResult.value : turnoverResult;
+        const turnoverMomentum = typeof turnoverMomentumResult === 'object' ? turnoverMomentumResult.value : turnoverMomentumResult;
         const erp = typeof erpResult === 'object' ? erpResult.value : erpResult;
-        const turnoverYoY = typeof turnoverYoYResult === 'object' ? turnoverYoYResult.value : turnoverYoYResult;
         const growthPEPercentile = typeof growthPEPercentileResult === 'object' ? growthPEPercentileResult.value : growthPEPercentileResult;
         const dividendYield = typeof dividendYieldResult === 'object' ? dividendYieldResult.value : dividendYieldResult;
         const commodityMomentum = typeof commodityMomentumResult === 'object' ? commodityMomentumResult.value : commodityMomentumResult;
@@ -238,9 +248,10 @@ class MacroDataFetcher {
             ppi,
             m1m2,
             bondYield,
-            turnover,
+            turnover: turnoverMomentum,
+            turnoverMomentum,
             erp,
-            turnoverYoY,
+            turnoverYoY: turnoverMomentum,
             growthPEPercentile,
             dividendYield,
             commodityMomentum,
