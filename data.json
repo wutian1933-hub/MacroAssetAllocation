@@ -7,6 +7,7 @@
     "ppi": 0.5,
     "m1m2": -3.4,
     "bondYield": 1.7473,
+    "turnoverMomentum": 15.3,
     "turnover": 15.3,
     "turnoverYoY": 15.3,
     "erp": 65,
@@ -21,6 +22,7 @@
     "ppi": "akshare",
     "m1m2": "akshare",
     "bondYield": "akshare",
+    "turnoverMomentum": "default",
     "turnover": "default",
     "turnoverYoY": "default",
     "erp": "default",
@@ -29,8 +31,9 @@
     "commodityMomentum": "default"
   },
   "errors": {
-    "turnover": "全A成交额同比增速暂未实现自动计算，使用默认值",
-    "turnoverYoY": "全A成交额同比增速暂未实现自动计算，使用默认值",
+    "turnoverMomentum": "中证全指成交额滚动环比动量暂未成功自动计算，使用默认值",
+    "turnover": "兼容字段：沿用turnoverMomentum数值",
+    "turnoverYoY": "兼容字段：沿用turnoverMomentum数值",
     "erp": "股债利差ERP暂未实现自动计算，使用默认值",
     "growthPEPercentile": "成长股ETF PE分位数暂未实现自动计算，使用默认值",
     "dividendYield": "红利股ETF股息率暂未实现自动计算，使用默认值",
