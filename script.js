@@ -121,6 +121,41 @@ let calculateBtn, historyTable, etfTable, factorTable;
 // 图表实例
 let allocationChart;
 
+function hasMetricValue(value) {
+    return value !== null && value !== undefined && value !== '';
+}
+
+function setMetricInput(id, value) {
+    if (hasMetricValue(value)) {
+        document.getElementById(id).value = value;
+    }
+}
+
+function updateTurnoverMomentumCopy() {
+    const label = document.getElementById('turnover-momentum-label')
+        || document.querySelector('#turnover')?.parentElement?.querySelector('label');
+    const method = document.getElementById('turnover-momentum-method')
+        || document.querySelector('#turnover')?.parentElement?.querySelector('.text-xs.text-gray-500.mt-1');
+    const trendLabel = document.getElementById('turnover-momentum-trend-label')
+        || document.querySelector('#turnover-trend')?.parentElement?.querySelector('label');
+    const trendSelect = document.getElementById('turnover-trend');
+
+    if (label) {
+        label.textContent = '中证全指成交额滚动环比动量 (%)';
+    }
+    if (method) {
+        method.textContent = '获取方法: ak.stock_zh_index_hist_csindex("000985")，0.7×5日滚动环比 + 0.3×20日滚动环比';
+    }
+    if (trendLabel) {
+        trendLabel.textContent = '成交额动量趋势';
+    }
+    if (trendSelect && trendSelect.options.length >= 3) {
+        trendSelect.options[0].textContent = '继续增强';
+        trendSelect.options[1].textContent = '稳定';
+        trendSelect.options[2].textContent = '转弱';
+    }
+}
+
 // 加载基础数据
 function loadBaseData() {
     // 加载配置矩阵
@@ -179,20 +214,19 @@ async function autoFetchData() {
         const data = await macroDataFetcher.getAllMacroData();
         
         // 填充数据到输入字段
-        if (data.pmi) document.getElementById('pmi').value = data.pmi;
-        if (data.socialFinance) document.getElementById('social-finance').value = data.socialFinance;
-        if (data.cpi) document.getElementById('cpi').value = data.cpi;
-        if (data.ppi) document.getElementById('ppi').value = data.ppi;
-        if (data.m1m2) document.getElementById('m1m2').value = data.m1m2;
-        if (data.bondYield) document.getElementById('bond-yield').value = data.bondYield;
-        if (data.turnover) document.getElementById('turnover').value = data.turnover;
-        if (data.erp) document.getElementById('erp').value = data.erp;
-        
-        // 填充缺失数据
-        if (data.turnoverYoY) document.getElementById('turnover').value = data.turnoverYoY;
-        if (data.growthPEPercentile) document.getElementById('growth-pe').value = data.growthPEPercentile;
-        if (data.dividendYield) document.getElementById('dividend-dy').value = data.dividendYield;
-        if (data.commodityMomentum) document.getElementById('commodity-momentum').value = data.commodityMomentum;
+        setMetricInput('pmi', data.pmi);
+        setMetricInput('social-finance', data.socialFinance);
+        setMetricInput('cpi', data.cpi);
+        setMetricInput('ppi', data.ppi);
+        setMetricInput('m1m2', data.m1m2);
+        setMetricInput('bond-yield', data.bondYield);
+        setMetricInput('turnover', data.turnoverMomentum ?? data.turnover ?? data.turnoverYoY);
+        setMetricInput('erp', data.erp);
+
+        // 填充派生指标
+        setMetricInput('growth-pe', data.growthPEPercentile);
+        setMetricInput('dividend-dy', data.dividendYield);
+        setMetricInput('commodity-momentum', data.commodityMomentum);
         
         // 更新状态
         const lastFetchTime = localStorage.getItem('lastFetchTime');
@@ -225,7 +259,8 @@ function init() {
     historyTable = document.getElementById('history-table');
     etfTable = document.getElementById('etf-table');
     factorTable = document.getElementById('factor-table');
-    
+    updateTurnoverMomentumCopy();
+
     // 加载基础数据
     loadBaseData();
     
@@ -308,7 +343,7 @@ function calculateAllocation() {
     const m1m2 = parseFloat(document.getElementById('m1m2').value) || 0;
     const bondYield = parseFloat(document.getElementById('bond-yield').value) || 0;
     const bondTrend = document.getElementById('bond-trend').value;
-    const turnover = parseFloat(document.getElementById('turnover').value) || 0;
+    const turnoverMomentum = parseFloat(document.getElementById('turnover').value) || 0;
     const erp = parseFloat(document.getElementById('erp').value) || 0;
     const turnoverTrend = document.getElementById('turnover-trend').value;
     
@@ -321,7 +356,7 @@ function calculateAllocation() {
     const growthScore = calculateGrowthScore(pmi, sfTrend);
     const inflationScore = calculateInflationScore(cpi, ppi, ppiTrend);
     const liquidityScore = calculateLiquidityScore(m1m2, bondTrend);
-    const sentimentScore = calculateSentimentScore(turnover, erp, turnoverTrend);
+    const sentimentScore = calculateSentimentScore(turnoverMomentum, erp, turnoverTrend);
     
     // 显示得分
     document.getElementById('growth-score').textContent = growthScore;
@@ -330,14 +365,14 @@ function calculateAllocation() {
     document.getElementById('sentiment-score').textContent = sentimentScore;
     
     // 判定宏观阶段
-    const stage = determineStage(growthScore, inflationScore, liquidityScore, sentimentScore, turnover, erp);
+    const stage = determineStage(growthScore, inflationScore, liquidityScore, sentimentScore, turnoverMomentum, erp);
     
     // 显示阶段信息
     document.getElementById('stage-result').textContent = stageDescriptions[stage].name;
     document.getElementById('stage-desc').textContent = stageDescriptions[stage].desc;
     
     // 计算资产配置
-    const allocation = calculateAssetAllocation(stage, turnover, erp);
+    const allocation = calculateAssetAllocation(stage, turnoverMomentum, erp);
     
     // 计算ETF标的因子得分
     const etfScores = calculateEtfScores(growthPe, dividendDy, commodityMomentum);
@@ -411,13 +446,20 @@ function calculateLiquidityScore(m1m2, bondTrend) {
 }
 
 // 计算市场情绪得分
-function calculateSentimentScore(turnover, erp, turnoverTrend) {
+function calculateSentimentScore(turnoverMomentum, erp, turnoverTrend) {
     let score = 0;
-    if (turnover > 0) {
+    if (turnoverMomentum > 50) {
+        score += 2;
+    } else if (turnoverMomentum > 0) {
         score += 1;
-    } else if (turnover < -20) {
+    } else if (turnoverMomentum < -20) {
         score -= 2;
     } else {
+        score -= 1;
+    }
+    if (turnoverTrend === 'up' && turnoverMomentum > 0) {
+        score += 1;
+    } else if (turnoverTrend === 'down' && turnoverMomentum < 0) {
         score -= 1;
     }
     if (erp > 80) {
@@ -429,20 +471,20 @@ function calculateSentimentScore(turnover, erp, turnoverTrend) {
 }
 
 // 判定宏观阶段
-function determineStage(growthScore, inflationScore, liquidityScore, sentimentScore, turnover, erp) {
+function determineStage(growthScore, inflationScore, liquidityScore, sentimentScore, turnoverMomentum, erp) {
     // 新的四维得分计算（0或1）
     const G = growthScore > 0 ? 1 : 0;
     const I = inflationScore > 0 ? 1 : 0;
     const L = liquidityScore > 0 ? 1 : 0;
     const S = sentimentScore > 0 ? 1 : 0;
     
-    // 情绪过热保护
-    if (turnover > 50 && S === 1) {
+    // 情绪过热保护：中证全指成交额动量显著升温
+    if (turnoverMomentum > 50 && S === 1) {
         return 4; // 过热初期
     }
-    
-    // 情绪冰点保护
-    if (turnover < -20 && erp > 80) {
+
+    // 情绪冰点保护：成交额动量快速降温且股票相对债券极便宜
+    if (turnoverMomentum < -20 && erp > 80) {
         return 6; // 衰退初期
     }
     
@@ -461,7 +503,7 @@ function determineStage(growthScore, inflationScore, liquidityScore, sentimentSc
 }
 
 // 计算资产配置
-function calculateAssetAllocation(stage, turnover, erp) {
+function calculateAssetAllocation(stage, turnoverMomentum, erp) {
     let allocation = { ...allocationMatrix[stage] };
     
     // 双封顶约束
@@ -469,13 +511,13 @@ function calculateAssetAllocation(stage, turnover, erp) {
     allocation.commodity = Math.min(allocation.commodity, 20); // 商品≤20%
     
     // 情绪过热保护
-    if (turnover > 50) {
+    if (turnoverMomentum > 50) {
         allocation.total = Math.min(allocation.total, 60);
         allocation.bond = Math.max(allocation.bond, 40);
     }
-    
+
     // 情绪冰点保护
-    if (turnover < -20 && erp > 80) {
+    if (turnoverMomentum < -20 && erp > 80) {
         allocation.growth = Math.max(allocation.growth, 15);
     }
     
