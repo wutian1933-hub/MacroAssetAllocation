@@ -236,11 +236,11 @@
                                 <div class="space-y-3">
                                     <div>
                                         <div class="flex justify-between">
-                                            <label class="block text-sm font-medium text-gray-700 mb-1">全 A 成交额同比增速 (%)</label>
+                                            <label id="turnover-momentum-label" class="block text-sm font-medium text-gray-700 mb-1">中证全指成交额滚动环比动量 (%)</label>
                                             <span class="text-xs text-gray-500">来源: AkShare</span>
                                         </div>
-                                        <input type="number" id="turnover" step="1" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500">
-                                        <div class="text-xs text-gray-500 mt-1">获取方法: ak.stock_zh_index_hist() 计算 252 日同比</div>
+                                        <input type="number" id="turnover" step="0.1" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500">
+                                        <div id="turnover-momentum-method" class="text-xs text-gray-500 mt-1">获取方法: ak.stock_zh_index_hist_csindex("000985")，0.7×5日滚动环比 + 0.3×20日滚动环比</div>
                                     </div>
                                     <div>
                                         <div class="flex justify-between">
@@ -251,11 +251,11 @@
                                         <div class="text-xs text-gray-500 mt-1">获取方法: (中证全指盈利收益率 - 国债收益率)</div>
                                     </div>
                                     <div>
-                                        <label class="block text-sm font-medium text-gray-700 mb-1">成交额趋势</label>
+                                        <label id="turnover-momentum-trend-label" class="block text-sm font-medium text-gray-700 mb-1">成交额动量趋势</label>
                                         <select id="turnover-trend" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500">
-                                            <option value="up">加速</option>
+                                            <option value="up">继续增强</option>
                                             <option value="stable">稳定</option>
-                                            <option value="down">减速</option>
+                                            <option value="down">转弱</option>
                                         </select>
                                     </div>
                                 </div>
