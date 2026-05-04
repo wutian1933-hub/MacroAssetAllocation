@@ -60,3 +60,16 @@ test('growth value dispersion only tilts internal equity allocation', () => {
     assert.equal(valueTilt.bond, base.bond);
     assert.equal(valueTilt.total, base.total);
 });
+
+test('manual default notes are not reported as fetch failures', () => {
+    const { formatFetchNotes } = loadDashboardScript();
+
+    assert.match(
+        formatFetchNotes(['growthPEPercentile: 暂未实现自动计算，保留默认/手动值']),
+        /自动数据获取成功/
+    );
+    assert.doesNotMatch(
+        formatFetchNotes(['growthPEPercentile: 暂未实现自动计算，保留默认/手动值']),
+        /获取失败/
+    );
+});

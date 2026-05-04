@@ -370,6 +370,7 @@ def build_data(ak_module) -> dict:
 
     indicators: dict[str, float] = {}
     errors: dict[str, str] = {}
+    notes: dict[str, str] = {}
     sources: dict[str, str] = {}
 
     for key, label, fetcher, extractor in specs:
@@ -400,14 +401,15 @@ def build_data(ak_module) -> dict:
     }
     for key, label in manual_defaults.items():
         indicators[key] = DEFAULT_INDICATORS[key]
-        sources[key] = "default"
-        errors[key] = f"{label}暂未实现自动计算，使用默认值"
+        sources[key] = "manual_default"
+        notes[key] = f"{label}暂未实现自动计算，保留默认/手动值"
 
     return {
         "update_date": current_date,
         "indicators": indicators,
         "sources": sources,
         "errors": errors,
+        "notes": notes,
     }
 
 

@@ -138,6 +138,13 @@ function formatFetchErrors(errors) {
     return `部分数据获取失败，已使用默认值：\n${errors.map(error => `- ${error}`).join('\n')}`;
 }
 
+function formatFetchNotes(notes) {
+    if (!Array.isArray(notes) || notes.length === 0) {
+        return '数据获取成功！';
+    }
+    return `自动数据获取成功。\n以下因子暂未自动化，已保留默认/手动值：\n${notes.map(note => `- ${note}`).join('\n')}`;
+}
+
 function updateTurnoverMomentumCopy() {
     const label = document.getElementById('turnover-momentum-label')
         || document.querySelector('#turnover')?.parentElement?.querySelector('label');
@@ -236,6 +243,8 @@ async function autoFetchData() {
         // 显示成功消息或错误提示
         if (data.hasError) {
             alert(formatFetchErrors(data.errors));
+        } else if (data.hasNotes) {
+            alert(formatFetchNotes(data.notes));
         } else {
             alert('数据获取成功！');
         }

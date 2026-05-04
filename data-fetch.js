@@ -42,13 +42,22 @@ class MacroDataFetcher {
     getIndicatorResult(data, keys, defaultValue) {
         const value = this.getIndicator(data && data.indicators, keys, defaultValue);
         const errors = data && data.errors ? data.errors : {};
+        const notes = data && data.notes ? data.notes : {};
         const sources = data && data.sources ? data.sources : {};
         const errorKey = keys.find(key => errors[key]);
+        const noteKey = keys.find(key => notes[key]);
         const sourceKey = keys.find(key => sources[key]);
         if (errorKey) {
             return {
                 value,
                 error: `${errorKey}: ${errors[errorKey]}`,
+                source: sourceKey ? sources[sourceKey] : null,
+            };
+        }
+        if (noteKey) {
+            return {
+                value,
+                note: `${noteKey}: ${notes[noteKey]}`,
                 source: sourceKey ? sources[sourceKey] : null,
             };
         }
@@ -260,7 +269,11 @@ class MacroDataFetcher {
         const errors = results
             .filter(result => typeof result === 'object' && result.error)
             .map(result => result.error);
+        const notes = results
+            .filter(result => typeof result === 'object' && result.note)
+            .map(result => result.note);
         const hasError = errors.length > 0;
+        const hasNotes = notes.length > 0;
 
         // 提取值
         const pmi = typeof pmiResult === 'object' ? pmiResult.value : pmiResult;
@@ -292,7 +305,9 @@ class MacroDataFetcher {
             dividendYield,
             commodityMomentum,
             hasError, // 添加错误标志
-            errors
+            errors,
+            hasNotes,
+            notes
         };
         
         // 缓存数据

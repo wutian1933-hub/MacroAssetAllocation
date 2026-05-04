@@ -169,6 +169,59 @@ class FetchDataExtractionTests(unittest.TestCase):
                 {"growth": growth, "value": value}
             )
 
+    def test_build_data_keeps_manual_defaults_out_of_errors(self):
+        dates = pd.date_range("2026-01-01", periods=61, freq="B")
+
+        class FakeAk:
+            def macro_china_pmi(self):
+                return pd.DataFrame({"制造业-指数": [50.3]})
+
+            def macro_china_shrzgm(self):
+                return pd.DataFrame({"社会融资规模增量": [100] * 12 + [110]})
+
+            def macro_china_cpi(self):
+                return pd.DataFrame({"全国-同比增长": [1.0]})
+
+            def macro_china_ppi(self):
+                return pd.DataFrame({"当月同比增长": [0.5]})
+
+            def macro_china_money_supply(self):
+                return pd.DataFrame(
+                    {
+                        "货币(M1)-同比增长": [5.1],
+                        "货币和准货币(M2)-同比增长": [8.5],
+                    }
+                )
+
+            def bond_zh_us_rate(self):
+                return pd.DataFrame(
+                    {
+                        "日期": dates,
+                        "中国国债收益率10年": [2.0] * len(dates),
+                    }
+                )
+
+            def stock_zh_index_hist_csindex(self, symbol, start_date, end_date):
+                if symbol == fetch_data.CSI_800_GROWTH_SYMBOL:
+                    return pd.DataFrame({"日期": dates, "收盘": range(100, 161)})
+                if symbol == fetch_data.CSI_800_VALUE_SYMBOL:
+                    return pd.DataFrame({"日期": dates, "收盘": range(100, 161)})
+                return pd.DataFrame(
+                    {
+                        "日期": dates,
+                        "成交金额": range(100, 161),
+                        "滚动市盈率": [20.0] * len(dates),
+                    }
+                )
+
+        data = fetch_data.build_data(FakeAk())
+
+        self.assertNotIn("growthPEPercentile", data["errors"])
+        self.assertNotIn("dividendYield", data["errors"])
+        self.assertNotIn("commodityMomentum", data["errors"])
+        self.assertIn("growthPEPercentile", data["notes"])
+        self.assertEqual(data["sources"]["growthPEPercentile"], "manual_default")
+
 
 if __name__ == "__main__":
     unittest.main()
