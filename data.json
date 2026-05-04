@@ -11,6 +11,7 @@
     "turnover": 3.27,
     "turnoverYoY": 3.27,
     "erp": 65,
+    "growthValueDispersion": 0,
     "growthPEPercentile": 45,
     "dividendYield": 3.2,
     "commodityMomentum": 2.5
@@ -26,12 +27,14 @@
     "turnover": "akshare",
     "turnoverYoY": "akshare",
     "erp": "default",
+    "growthValueDispersion": "default",
     "growthPEPercentile": "default",
     "dividendYield": "default",
     "commodityMomentum": "default"
   },
   "errors": {
-    "erp": "股债利差ERP暂未实现自动计算，使用默认值",
+    "erp": "中证全指ERP暂未成功自动计算，使用默认值",
+    "growthValueDispersion": "中证800成长/价值分化度暂未成功自动计算，使用默认中性值",
     "growthPEPercentile": "成长股ETF PE分位数暂未实现自动计算，使用默认值",
     "dividendYield": "红利股ETF股息率暂未实现自动计算，使用默认值",
     "commodityMomentum": "商品ETF动量得分暂未实现自动计算，使用默认值"

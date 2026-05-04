@@ -18,6 +18,8 @@ import pandas as pd
 
 CSI_ALL_SHARE_SYMBOL = "000985"
 CSI_ALL_SHARE_ERP_START_DATE = "20041231"
+CSI_800_GROWTH_SYMBOL = "H30355"
+CSI_800_VALUE_SYMBOL = "H30356"
 BOND_YIELD_10Y_COLUMN = "中国国债收益率10年"
 CSI_ROLLING_PE_COLUMNS = (
     "滚动市盈率",
@@ -39,6 +41,7 @@ DEFAULT_INDICATORS = {
     "turnover": 15.3,
     "turnoverYoY": 15.3,
     "erp": 65,
+    "growthValueDispersion": 0.0,
     "growthPEPercentile": 45,
     "dividendYield": 3.2,
     "commodityMomentum": 2.5,
@@ -209,6 +212,50 @@ def _prepare_bond_yield(df: pd.DataFrame) -> pd.DataFrame:
     return prepared
 
 
+def _prepare_index_close(df: pd.DataFrame, label: str) -> pd.DataFrame:
+    if df.empty:
+        raise ValueError(f"{label}返回数据为空，无法计算成长/价值分化度")
+
+    date_column = _date_column(df, label)
+    close_column = _first_existing_column(df, ("收盘", "close"), label)
+    prepared = pd.DataFrame(
+        {
+            "date": pd.to_datetime(df[date_column], errors="coerce"),
+            "close": pd.to_numeric(df[close_column], errors="coerce"),
+        }
+    ).dropna()
+    prepared = prepared[prepared["close"] > 0].sort_values("date")
+    if prepared.empty:
+        raise ValueError(f"{label}收盘价没有可用正数值，无法计算成长/价值分化度")
+    return prepared
+
+
+def _index_return(close: pd.Series, window: int, label: str) -> float:
+    if len(close) < window + 1:
+        raise ValueError(f"{label}数据不足 {window + 1} 个交易日，无法计算 {window} 日收益率")
+
+    latest = close.iloc[-1]
+    base = close.iloc[-window - 1]
+    if pd.isna(latest) or pd.isna(base) or base == 0:
+        raise ValueError(f"{label}{window}日收益率所需收盘价不可用")
+    return float(latest / base - 1)
+
+
+def extract_growth_value_dispersion(inputs: dict[str, pd.DataFrame]) -> float:
+    growth = _prepare_index_close(inputs["growth"], "成长指数")
+    value = _prepare_index_close(inputs["value"], "价值指数")
+    merged = pd.merge(growth, value, on="date", how="inner", suffixes=("_growth", "_value"))
+    if len(merged) < 61:
+        raise ValueError("成长指数与价值指数可对齐数据不足 61 个交易日，无法计算20日/60日分化度")
+
+    growth_20 = _index_return(merged["close_growth"], 20, "成长指数")
+    value_20 = _index_return(merged["close_value"], 20, "价值指数")
+    growth_60 = _index_return(merged["close_growth"], 60, "成长指数")
+    value_60 = _index_return(merged["close_value"], 60, "价值指数")
+    dispersion = 0.4 * (growth_20 - value_20) + 0.6 * (growth_60 - value_60)
+    return round(dispersion * 100, 2)
+
+
 def extract_erp_percentile(inputs: dict[str, pd.DataFrame]) -> float:
     index_df = _prepare_csi_valuation(inputs["index"])
     bond_df = _prepare_bond_yield(inputs["bond"])
@@ -246,6 +293,24 @@ def fetch_erp_inputs(ak_module) -> dict[str, pd.DataFrame]:
             start_date=CSI_ALL_SHARE_ERP_START_DATE,
         ),
         "bond": ak_module.bond_zh_us_rate(),
+    }
+
+
+def fetch_growth_value_inputs(ak_module) -> dict[str, pd.DataFrame]:
+    end_date = datetime.datetime.now()
+    start_date = (end_date - datetime.timedelta(days=150)).strftime("%Y%m%d")
+    end_date_text = end_date.strftime("%Y%m%d")
+    return {
+        "growth": ak_module.stock_zh_index_hist_csindex(
+            symbol=CSI_800_GROWTH_SYMBOL,
+            start_date=start_date,
+            end_date=end_date_text,
+        ),
+        "value": ak_module.stock_zh_index_hist_csindex(
+            symbol=CSI_800_VALUE_SYMBOL,
+            start_date=start_date,
+            end_date=end_date_text,
+        ),
     }
 
 
@@ -294,6 +359,12 @@ def build_data(ak_module) -> dict:
             "中证全指ERP历史分位数",
             lambda: fetch_erp_inputs(ak_module),
             extract_erp_percentile,
+        ),
+        (
+            "growthValueDispersion",
+            "中证800成长/价值分化度",
+            lambda: fetch_growth_value_inputs(ak_module),
+            extract_growth_value_dispersion,
         ),
     ]
 

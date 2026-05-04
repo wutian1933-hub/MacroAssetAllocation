@@ -105,6 +105,20 @@ class MacroDataFetcher {
             return { value: 45, error: error.message }; // 默认数据
         }
     }
+
+    // 获取成长/价值分化度
+    async getGrowthValueDispersion() {
+        try {
+            const result = await this.fetchDataFromJson();
+            if (result.success && result.data && result.data.indicators) {
+                return this.getIndicatorResult(result.data, ['growthValueDispersion'], 0);
+            }
+            return { value: 0, error: !result.success ? result.error : null }; // 默认中性
+        } catch (error) {
+            console.error('获取成长/价值分化度失败:', error);
+            return { value: 0, error: error.message }; // 默认中性
+        }
+    }
     
     // 获取红利股ETF股息率
     async getDividendYield() {
@@ -226,7 +240,7 @@ class MacroDataFetcher {
     // 获取所有宏观数据
     async getAllMacroData() {
         // 并行获取所有数据
-        const [pmiResult, socialFinanceResult, cpiResult, ppiResult, m1m2Result, bondYieldResult, turnoverMomentumResult, erpResult, growthPEPercentileResult, dividendYieldResult, commodityMomentumResult] = await Promise.all([
+        const [pmiResult, socialFinanceResult, cpiResult, ppiResult, m1m2Result, bondYieldResult, turnoverMomentumResult, erpResult, growthValueDispersionResult, growthPEPercentileResult, dividendYieldResult, commodityMomentumResult] = await Promise.all([
             this.getPMI(),
             this.getSocialFinance(),
             this.getCPI(),
@@ -235,13 +249,14 @@ class MacroDataFetcher {
             this.getBondYield(),
             this.getTurnoverMomentum(),
             this.getERP(),
+            this.getGrowthValueDispersion(),
             this.getGrowthPEPercentile(),
             this.getDividendYield(),
             this.getCommodityMomentum()
         ]);
 
         // 提取值并检查错误
-        const results = [pmiResult, socialFinanceResult, cpiResult, ppiResult, m1m2Result, bondYieldResult, turnoverMomentumResult, erpResult, growthPEPercentileResult, dividendYieldResult, commodityMomentumResult];
+        const results = [pmiResult, socialFinanceResult, cpiResult, ppiResult, m1m2Result, bondYieldResult, turnoverMomentumResult, erpResult, growthValueDispersionResult, growthPEPercentileResult, dividendYieldResult, commodityMomentumResult];
         const errors = results
             .filter(result => typeof result === 'object' && result.error)
             .map(result => result.error);
@@ -256,6 +271,7 @@ class MacroDataFetcher {
         const bondYield = typeof bondYieldResult === 'object' ? bondYieldResult.value : bondYieldResult;
         const turnoverMomentum = typeof turnoverMomentumResult === 'object' ? turnoverMomentumResult.value : turnoverMomentumResult;
         const erp = typeof erpResult === 'object' ? erpResult.value : erpResult;
+        const growthValueDispersion = typeof growthValueDispersionResult === 'object' ? growthValueDispersionResult.value : growthValueDispersionResult;
         const growthPEPercentile = typeof growthPEPercentileResult === 'object' ? growthPEPercentileResult.value : growthPEPercentileResult;
         const dividendYield = typeof dividendYieldResult === 'object' ? dividendYieldResult.value : dividendYieldResult;
         const commodityMomentum = typeof commodityMomentumResult === 'object' ? commodityMomentumResult.value : commodityMomentumResult;
@@ -271,6 +287,7 @@ class MacroDataFetcher {
             turnoverMomentum,
             erp,
             turnoverYoY: turnoverMomentum,
+            growthValueDispersion,
             growthPEPercentile,
             dividendYield,
             commodityMomentum,

@@ -131,6 +131,44 @@ class FetchDataExtractionTests(unittest.TestCase):
         ):
             fetch_data.extract_erp_percentile({"index": index_df, "bond": bond_df})
 
+    def test_extract_growth_value_dispersion_uses_weighted_relative_returns(self):
+        dates = pd.date_range("2026-01-01", periods=61, freq="B")
+        growth = pd.DataFrame(
+            {
+                "日期": dates,
+                "收盘": [100] + [110] * 40 + [120] * 20,
+            }
+        )
+        value = pd.DataFrame(
+            {
+                "日期": dates,
+                "收盘": [100] + [105] * 40 + [110] * 20,
+            }
+        )
+
+        expected_20 = 120 / 110 - 110 / 105
+        expected_60 = 120 / 100 - 110 / 100
+        expected = round((0.4 * expected_20 + 0.6 * expected_60) * 100, 2)
+
+        self.assertEqual(
+            fetch_data.extract_growth_value_dispersion(
+                {"growth": growth, "value": value}
+            ),
+            expected,
+        )
+
+    def test_extract_growth_value_dispersion_reports_missing_close_column(self):
+        growth = pd.DataFrame({"日期": ["2026-01-01"], "最新价": [100]})
+        value = pd.DataFrame({"日期": ["2026-01-01"], "收盘": [100]})
+
+        with self.assertRaisesRegex(
+            KeyError,
+            "成长指数.*收盘.*当前列",
+        ):
+            fetch_data.extract_growth_value_dispersion(
+                {"growth": growth, "value": value}
+            )
+
 
 if __name__ == "__main__":
     unittest.main()

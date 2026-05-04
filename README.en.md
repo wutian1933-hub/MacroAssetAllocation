@@ -24,7 +24,7 @@ This system is a quantitative decision-making tool built on the **"Pring Six-Sta
 
 ## System Architecture
 
-1. **Data Input Layer**: Users input 8 core macro indicators and ETF data
+1. **Data Input Layer**: Users input 8 core macro indicators and market factors
 2. **Logic Engine Layer**: Calculates four-dimensional scores and determines the macro stage
 3. **Allocation Calculation Layer**: Calculates asset allocation ratios based on the macro stage, applies double ceiling constraints and sentiment protection mechanisms
 4. **ETF Allocation Layer**: Allocates weights to ETFs based on a multi-factor scoring model
@@ -82,6 +82,7 @@ The project already includes the `.github/workflows/fetch-data.yml` file, which 
 | <br />               | **10-Year Treasury Yield**               | AkShare     | **Falling**: Beneficial for bonds/growth stocks**Rapidly rising**: Beneficial for value/commodities, negative for high valuations                                                                                                          |
 | **Market Sentiment** | **CSI All Share Turnover Rolling QoQ Momentum** | AkShare     | `turnoverMomentum = 0.7 × 5-day rolling QoQ + 0.3 × 20-day rolling QoQ`; **>0 and strengthening**: Sentiment recovery; **>50%**: Sentiment overheating; **< -20%**: Sentiment ice point |
 | <br />               | **Stock-Bond Spread (ERP)**              | AkShare + Calculated | Uses CSI All Share `000985` rolling PE and 10-year Treasury yield to build a daily ERP history; **>80% quantile**: Stocks extremely cheap (left-side layout)**<20% quantile**: Stocks extremely expensive (right-side reduction) |
+| **Market Factors** | **Growth/Value Dispersion** | AkShare + Calculated | Uses CSI 800 Growth `H30355` and CSI 800 Value `H30356` daily closes, `0.4 × 20-day excess return + 0.6 × 60-day excess return`; only tilts growth/dividend equity allocation and does not change the stock-bond ratio |
 
 ### ETF Pool
 

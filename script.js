@@ -143,23 +143,12 @@ function updateTurnoverMomentumCopy() {
         || document.querySelector('#turnover')?.parentElement?.querySelector('label');
     const method = document.getElementById('turnover-momentum-method')
         || document.querySelector('#turnover')?.parentElement?.querySelector('.text-xs.text-gray-500.mt-1');
-    const trendLabel = document.getElementById('turnover-momentum-trend-label')
-        || document.querySelector('#turnover-trend')?.parentElement?.querySelector('label');
-    const trendSelect = document.getElementById('turnover-trend');
 
     if (label) {
         label.textContent = '中证全指成交额滚动环比动量 (%)';
     }
     if (method) {
         method.textContent = '获取方法: ak.stock_zh_index_hist_csindex("000985")，0.7×5日滚动环比 + 0.3×20日滚动环比';
-    }
-    if (trendLabel) {
-        trendLabel.textContent = '成交额动量趋势';
-    }
-    if (trendSelect && trendSelect.options.length >= 3) {
-        trendSelect.options[0].textContent = '继续增强';
-        trendSelect.options[1].textContent = '稳定';
-        trendSelect.options[2].textContent = '转弱';
     }
 }
 
@@ -231,6 +220,7 @@ async function autoFetchData() {
         setMetricInput('erp', data.erp);
 
         // 填充派生指标
+        setMetricInput('growth-value-dispersion', data.growthValueDispersion);
         setMetricInput('growth-pe', data.growthPEPercentile);
         setMetricInput('dividend-dy', data.dividendYield);
         setMetricInput('commodity-momentum', data.commodityMomentum);
@@ -352,9 +342,8 @@ function calculateAllocation() {
     const bondTrend = document.getElementById('bond-trend').value;
     const turnoverMomentum = parseFloat(document.getElementById('turnover').value) || 0;
     const erp = parseFloat(document.getElementById('erp').value) || 0;
-    const turnoverTrend = document.getElementById('turnover-trend').value;
-    
-    // 获取ETF标的数据
+    // 获取市场因子
+    const growthValueDispersion = parseFloat(document.getElementById('growth-value-dispersion').value) || 0;
     const growthPe = parseFloat(document.getElementById('growth-pe').value) || 50;
     const dividendDy = parseFloat(document.getElementById('dividend-dy').value) || 4.5;
     const commodityMomentum = parseFloat(document.getElementById('commodity-momentum').value) || 0.5;
@@ -363,7 +352,7 @@ function calculateAllocation() {
     const growthScore = calculateGrowthScore(pmi, sfTrend);
     const inflationScore = calculateInflationScore(cpi, ppi, ppiTrend);
     const liquidityScore = calculateLiquidityScore(m1m2, bondTrend);
-    const sentimentScore = calculateSentimentScore(turnoverMomentum, erp, turnoverTrend);
+    const sentimentScore = calculateSentimentScore(turnoverMomentum, erp);
     
     // 显示得分
     document.getElementById('growth-score').textContent = growthScore;
@@ -379,7 +368,7 @@ function calculateAllocation() {
     document.getElementById('stage-desc').textContent = stageDescriptions[stage].desc;
     
     // 计算资产配置
-    const allocation = calculateAssetAllocation(stage, turnoverMomentum, erp);
+    const allocation = calculateAssetAllocation(stage, turnoverMomentum, erp, growthValueDispersion);
     
     // 计算ETF标的因子得分
     const etfScores = calculateEtfScores(growthPe, dividendDy, commodityMomentum);
@@ -453,7 +442,7 @@ function calculateLiquidityScore(m1m2, bondTrend) {
 }
 
 // 计算市场情绪得分
-function calculateSentimentScore(turnoverMomentum, erp, turnoverTrend) {
+function calculateSentimentScore(turnoverMomentum, erp) {
     let score = 0;
     if (turnoverMomentum > 50) {
         score += 2;
@@ -462,11 +451,6 @@ function calculateSentimentScore(turnoverMomentum, erp, turnoverTrend) {
     } else if (turnoverMomentum < -20) {
         score -= 2;
     } else {
-        score -= 1;
-    }
-    if (turnoverTrend === 'up' && turnoverMomentum > 0) {
-        score += 1;
-    } else if (turnoverTrend === 'down' && turnoverMomentum < 0) {
         score -= 1;
     }
     if (erp > 80) {
@@ -510,7 +494,7 @@ function determineStage(growthScore, inflationScore, liquidityScore, sentimentSc
 }
 
 // 计算资产配置
-function calculateAssetAllocation(stage, turnoverMomentum, erp) {
+function calculateAssetAllocation(stage, turnoverMomentum, erp, growthValueDispersion = 0) {
     let allocation = { ...allocationMatrix[stage] };
     
     // 双封顶约束
@@ -527,7 +511,18 @@ function calculateAssetAllocation(stage, turnoverMomentum, erp) {
     if (turnoverMomentum < -20 && erp > 80) {
         allocation.growth = Math.max(allocation.growth, 15);
     }
-    
+
+    const styleTilt = Math.min(5, Math.abs(growthValueDispersion) * 0.5);
+    if (growthValueDispersion > 5) {
+        const shift = Math.min(styleTilt, allocation.dividend);
+        allocation.growth += shift;
+        allocation.dividend -= shift;
+    } else if (growthValueDispersion < -5) {
+        const shift = Math.min(styleTilt, allocation.growth);
+        allocation.growth -= shift;
+        allocation.dividend += shift;
+    }
+
     return allocation;
 }
 
