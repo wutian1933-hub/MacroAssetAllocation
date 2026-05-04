@@ -11,9 +11,21 @@ from __future__ import annotations
 import datetime
 import json
 from dataclasses import dataclass
-from typing import Callable
+from typing import Callable, Optional
 
 import pandas as pd
+
+
+CSI_ALL_SHARE_SYMBOL = "000985"
+CSI_ALL_SHARE_ERP_START_DATE = "20041231"
+BOND_YIELD_10Y_COLUMN = "中国国债收益率10年"
+CSI_ROLLING_PE_COLUMNS = (
+    "滚动市盈率",
+    "滚动PE",
+    "市盈率TTM",
+    "PE_TTM",
+    "pe_ttm",
+)
 
 
 DEFAULT_INDICATORS = {
@@ -39,7 +51,7 @@ class IndicatorResult:
     value: float
     success: bool
     source: str
-    error: str | None = None
+    error: Optional[str] = None
 
 
 def _latest_non_null(df: pd.DataFrame, column: str) -> float:
@@ -97,7 +109,7 @@ def extract_bond_yield(df: pd.DataFrame) -> float:
         df = df.copy()
         df["日期"] = pd.to_datetime(df["日期"], errors="coerce")
         df = df.sort_values("日期", ascending=False)
-    return _latest_non_null(df, "中国国债收益率10年")
+    return _latest_non_null(df, BOND_YIELD_10Y_COLUMN)
 
 
 def _rolling_qoq(values: pd.Series, window: int) -> float:
@@ -137,14 +149,104 @@ def extract_turnover_momentum(df: pd.DataFrame) -> float:
     return round(momentum * 100, 2)
 
 
-def fetch_csi_all_share_history(ak_module) -> pd.DataFrame:
+def _date_column(df: pd.DataFrame, label: str) -> str:
+    column = next((name for name in ("日期", "date") if name in df.columns), None)
+    if column is None:
+        raise KeyError(f"{label}缺少日期列; 当前列: {', '.join(map(str, df.columns))}")
+    return column
+
+
+def _first_existing_column(df: pd.DataFrame, candidates: tuple[str, ...], label: str) -> str:
+    column = next((name for name in candidates if name in df.columns), None)
+    if column is None:
+        raise KeyError(f"{label}缺少可用列: {', '.join(candidates)}; 当前列: {', '.join(map(str, df.columns))}")
+    return column
+
+
+def _prepare_csi_valuation(df: pd.DataFrame) -> pd.DataFrame:
+    if df.empty:
+        raise ValueError("AkShare stock_zh_index_hist_csindex 返回数据为空，无法计算中证全指ERP")
+
+    date_column = _date_column(df, "AkShare stock_zh_index_hist_csindex 中证全指日频数据")
+    pe_column = _first_existing_column(
+        df,
+        CSI_ROLLING_PE_COLUMNS,
+        "AkShare stock_zh_index_hist_csindex 中证全指日频数据",
+    )
+
+    prepared = pd.DataFrame(
+        {
+            "date": pd.to_datetime(df[date_column], errors="coerce"),
+            "pe": pd.to_numeric(df[pe_column], errors="coerce"),
+        }
+    ).dropna()
+    prepared = prepared[prepared["pe"] > 0].sort_values("date")
+    if prepared.empty:
+        raise ValueError("中证全指滚动市盈率没有可用正数值，无法计算ERP")
+    return prepared
+
+
+def _prepare_bond_yield(df: pd.DataFrame) -> pd.DataFrame:
+    if df.empty:
+        raise ValueError("AkShare bond_zh_us_rate 返回数据为空，无法计算中证全指ERP")
+
+    date_column = _date_column(df, "AkShare bond_zh_us_rate 国债收益率数据")
+    if BOND_YIELD_10Y_COLUMN not in df.columns:
+        raise KeyError(
+            f"AkShare bond_zh_us_rate 国债收益率数据缺少可用列: {BOND_YIELD_10Y_COLUMN}; "
+            f"当前列: {', '.join(map(str, df.columns))}"
+        )
+
+    prepared = pd.DataFrame(
+        {
+            "date": pd.to_datetime(df[date_column], errors="coerce"),
+            "bond_yield": pd.to_numeric(df[BOND_YIELD_10Y_COLUMN], errors="coerce"),
+        }
+    ).dropna()
+    prepared = prepared.sort_values("date")
+    if prepared.empty:
+        raise ValueError("10年期国债收益率没有可用数值，无法计算ERP")
+    return prepared
+
+
+def extract_erp_percentile(inputs: dict[str, pd.DataFrame]) -> float:
+    index_df = _prepare_csi_valuation(inputs["index"])
+    bond_df = _prepare_bond_yield(inputs["bond"])
+    merged = pd.merge_asof(index_df, bond_df, on="date", direction="backward")
+    merged = merged.dropna(subset=["pe", "bond_yield"])
+    if merged.empty:
+        raise ValueError("中证全指滚动市盈率与10年期国债收益率没有可对齐的日频数据")
+
+    erp = 100 / merged["pe"] - merged["bond_yield"]
+    erp = erp.dropna()
+    if erp.empty:
+        raise ValueError("ERP历史序列为空，无法计算分位数")
+
+    current_erp = erp.iloc[-1]
+    percentile = (erp <= current_erp).mean() * 100
+    return round(float(percentile), 2)
+
+
+def fetch_csi_all_share_history(ak_module, start_date: Optional[str] = None) -> pd.DataFrame:
     end_date = datetime.datetime.now()
-    start_date = end_date - datetime.timedelta(days=180)
+    if start_date is None:
+        start = end_date - datetime.timedelta(days=180)
+        start_date = start.strftime("%Y%m%d")
     return ak_module.stock_zh_index_hist_csindex(
-        symbol="000985",
-        start_date=start_date.strftime("%Y%m%d"),
+        symbol=CSI_ALL_SHARE_SYMBOL,
+        start_date=start_date,
         end_date=end_date.strftime("%Y%m%d"),
     )
+
+
+def fetch_erp_inputs(ak_module) -> dict[str, pd.DataFrame]:
+    return {
+        "index": fetch_csi_all_share_history(
+            ak_module,
+            start_date=CSI_ALL_SHARE_ERP_START_DATE,
+        ),
+        "bond": ak_module.bond_zh_us_rate(),
+    }
 
 
 def fetch_indicator(
@@ -152,8 +254,8 @@ def fetch_indicator(
     key: str,
     label: str,
     default: float,
-    fetcher: Callable[[], pd.DataFrame],
-    extractor: Callable[[pd.DataFrame], float],
+    fetcher: Callable[[], object],
+    extractor: Callable[[object], float],
 ) -> IndicatorResult:
     print(f"获取{label}...")
     try:
@@ -187,6 +289,12 @@ def build_data(ak_module) -> dict:
             lambda: fetch_csi_all_share_history(ak_module),
             extract_turnover_momentum,
         ),
+        (
+            "erp",
+            "中证全指ERP历史分位数",
+            lambda: fetch_erp_inputs(ak_module),
+            extract_erp_percentile,
+        ),
     ]
 
     indicators: dict[str, float] = {}
@@ -215,7 +323,6 @@ def build_data(ak_module) -> dict:
 
     # 尚未实现实时计算的因子保持默认值，但明确标注来源。
     manual_defaults = {
-        "erp": "股债利差ERP",
         "growthPEPercentile": "成长股ETF PE分位数",
         "dividendYield": "红利股ETF股息率",
         "commodityMomentum": "商品ETF动量得分",

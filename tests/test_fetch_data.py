@@ -90,6 +90,47 @@ class FetchDataExtractionTests(unittest.TestCase):
 
         self.assertEqual(fetch_data.extract_turnover_momentum(df), expected)
 
+    def test_extract_erp_percentile_uses_csi_pe_and_bond_yield_history(self):
+        index_df = pd.DataFrame(
+            {
+                "日期": pd.date_range("2026-01-01", periods=4, freq="B"),
+                "滚动市盈率": [20.0, 10.0, 25.0, 12.5],
+            }
+        )
+        bond_df = pd.DataFrame(
+            {
+                "日期": pd.date_range("2026-01-01", periods=4, freq="B"),
+                "中国国债收益率10年": [2.0, 2.0, 2.0, 2.0],
+            }
+        )
+
+        self.assertEqual(
+            fetch_data.extract_erp_percentile(
+                {"index": index_df, "bond": bond_df}
+            ),
+            75.0,
+        )
+
+    def test_extract_erp_percentile_reports_missing_pe_column(self):
+        index_df = pd.DataFrame(
+            {
+                "日期": ["2026-01-01"],
+                "收盘": [5000],
+            }
+        )
+        bond_df = pd.DataFrame(
+            {
+                "日期": ["2026-01-01"],
+                "中国国债收益率10年": [2.0],
+            }
+        )
+
+        with self.assertRaisesRegex(
+            KeyError,
+            "stock_zh_index_hist_csindex.*滚动市盈率.*当前列",
+        ):
+            fetch_data.extract_erp_percentile({"index": index_df, "bond": bond_df})
+
 
 if __name__ == "__main__":
     unittest.main()

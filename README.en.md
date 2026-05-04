@@ -81,7 +81,7 @@ The project already includes the `.github/workflows/fetch-data.yml` file, which 
 | **Liquidity**        | **M1-M2 Spread**                         | AkShare     | **Widening (M1>M2)**: Capital activation (stock market active/overheating)**Narrowing/negative**: Capital regularization (risk aversion)                                                                                                   |
 | <br />               | **10-Year Treasury Yield**               | AkShare     | **Falling**: Beneficial for bonds/growth stocks**Rapidly rising**: Beneficial for value/commodities, negative for high valuations                                                                                                          |
 | **Market Sentiment** | **CSI All Share Turnover Rolling QoQ Momentum** | AkShare     | `turnoverMomentum = 0.7 × 5-day rolling QoQ + 0.3 × 20-day rolling QoQ`; **>0 and strengthening**: Sentiment recovery; **>50%**: Sentiment overheating; **< -20%**: Sentiment ice point |
-| <br />               | **Stock-Bond Spread (ERP)**              | Calculated  | **>80% quantile**: Stocks extremely cheap (left-side layout)**<20% quantile**: Stocks extremely expensive (right-side reduction)                                                                                                           |
+| <br />               | **Stock-Bond Spread (ERP)**              | AkShare + Calculated | Uses CSI All Share `000985` rolling PE and 10-year Treasury yield to build a daily ERP history; **>80% quantile**: Stocks extremely cheap (left-side layout)**<20% quantile**: Stocks extremely expensive (right-side reduction) |
 
 ### ETF Pool
 

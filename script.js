@@ -131,6 +131,13 @@ function setMetricInput(id, value) {
     }
 }
 
+function formatFetchErrors(errors) {
+    if (!Array.isArray(errors) || errors.length === 0) {
+        return '数据获取失败，使用的是默认数据。请检查网络连接或手动更新数据。';
+    }
+    return `部分数据获取失败，已使用默认值：\n${errors.map(error => `- ${error}`).join('\n')}`;
+}
+
 function updateTurnoverMomentumCopy() {
     const label = document.getElementById('turnover-momentum-label')
         || document.querySelector('#turnover')?.parentElement?.querySelector('label');
@@ -238,7 +245,7 @@ async function autoFetchData() {
         
         // 显示成功消息或错误提示
         if (data.hasError) {
-            alert('数据获取失败，使用的是默认数据。请检查网络连接或手动更新数据。');
+            alert(formatFetchErrors(data.errors));
         } else {
             alert('数据获取成功！');
         }
