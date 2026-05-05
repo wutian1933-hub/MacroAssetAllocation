@@ -12,10 +12,10 @@
     "growthValueDispersion": 7.89,
     "growthValuationPercentile": 97.59,
     "dividendYield": 4.79,
+    "commodityMomentum": -0.39,
     "turnover": 3.27,
     "turnoverYoY": 3.27,
-    "growthPEPercentile": 97.59,
-    "commodityMomentum": 2.5
+    "growthPEPercentile": 97.59
   },
   "sources": {
     "pmi": "akshare",
@@ -29,13 +29,11 @@
     "growthValueDispersion": "akshare",
     "growthValuationPercentile": "akshare",
     "dividendYield": "akshare",
+    "commodityMomentum": "ccidx_fallback",
     "turnover": "akshare",
     "turnoverYoY": "akshare",
-    "growthPEPercentile": "akshare",
-    "commodityMomentum": "manual_default"
+    "growthPEPercentile": "akshare"
   },
   "errors": {},
-  "notes": {
-    "commodityMomentum": "商品ETF动量得分暂未实现自动计算，保留默认/手动值"
-  }
+  "notes": {}
 }
