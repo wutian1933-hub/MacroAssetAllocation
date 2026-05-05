@@ -44,7 +44,7 @@ test('getAllMacroData reads data.json once and extracts all indicators', async (
                         growthValueDispersion: 7.89,
                         growthValuationPercentile: 97.59,
                         dividendYield: 5.2,
-                        commodityMomentum: 2.5,
+                        commodityMomentum: 3.6,
                     },
                     sources: {},
                     errors: {},
@@ -60,6 +60,7 @@ test('getAllMacroData reads data.json once and extracts all indicators', async (
     assert.equal(data.growthValuationPercentile, 97.59);
     assert.equal(data.growthPEPercentile, 97.59);
     assert.equal(data.dividendYield, 5.2);
+    assert.equal(data.commodityMomentum, 3.6);
     assert.equal(data.hasError, false);
 });
 
