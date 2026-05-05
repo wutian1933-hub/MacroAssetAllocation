@@ -224,6 +224,30 @@ class FetchDataExtractionTests(unittest.TestCase):
         ):
             fetch_data.extract_dividend_yield(df)
 
+    def test_extract_commodity_momentum_uses_weighted_20d_60d_returns(self):
+        dates = pd.date_range("2026-01-01", periods=61, freq="B")
+        df = pd.DataFrame(
+            {
+                "日期": dates,
+                "收盘点位": [100] + [110] * 40 + [120] * 20,
+            }
+        )
+
+        expected_20 = 120 / 110 - 1
+        expected_60 = 120 / 100 - 1
+        expected = round((0.4 * expected_20 + 0.6 * expected_60) * 100, 2)
+
+        self.assertEqual(fetch_data.extract_commodity_momentum(df), expected)
+
+    def test_extract_commodity_momentum_reports_missing_close_column(self):
+        df = pd.DataFrame({"日期": ["2026-04-30"], "涨跌幅": [0.5]})
+
+        with self.assertRaisesRegex(
+            KeyError,
+            "中证商品期货价格指数.*收盘点位.*当前列",
+        ):
+            fetch_data.extract_commodity_momentum(df)
+
     def test_build_data_keeps_manual_defaults_out_of_errors(self):
         dates = pd.date_range("2025-01-01", periods=260, freq="B")
 
@@ -284,6 +308,14 @@ class FetchDataExtractionTests(unittest.TestCase):
                     }
                 )
 
+            def futures_index_ccidx(self, symbol):
+                return pd.DataFrame(
+                    {
+                        "日期": dates,
+                        "收盘点位": [100] + [110] * 199 + [120] * 60,
+                    }
+                )
+
         data = fetch_data.build_data(FakeAk())
 
         self.assertIn("growthValuationPercentile", data["indicators"])
@@ -295,12 +327,15 @@ class FetchDataExtractionTests(unittest.TestCase):
         self.assertEqual(data["sources"]["growthPEPercentile"], "akshare")
         self.assertEqual(data["indicators"]["dividendYield"], 5.2)
         self.assertEqual(data["sources"]["dividendYield"], "akshare")
+        self.assertIn("commodityMomentum", data["indicators"])
+        self.assertEqual(data["sources"]["commodityMomentum"], "akshare")
         self.assertNotIn("growthValuationPercentile", data["errors"])
         self.assertNotIn("growthPEPercentile", data["errors"])
         self.assertNotIn("dividendYield", data["errors"])
         self.assertNotIn("commodityMomentum", data["errors"])
         self.assertNotIn("growthPEPercentile", data["notes"])
         self.assertNotIn("dividendYield", data["notes"])
+        self.assertNotIn("commodityMomentum", data["notes"])
 
 
 if __name__ == "__main__":
