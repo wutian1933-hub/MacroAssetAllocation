@@ -152,17 +152,17 @@ class MacroDataFetcher {
         }
     }
     
-    // 获取商品ETF动量得分
+    // 获取商品价格动量
     async getCommodityMomentum() {
         try {
             const result = await this.fetchDataFromJson();
             if (result.success && result.data && result.data.indicators) {
-                return this.getIndicatorResult(result.data, ['commodityMomentum'], 2.5);
+                return this.getIndicatorResult(result.data, ['commodityMomentum'], 0);
             }
-            return { value: 2.5, error: !result.success ? result.error : null }; // 默认数据
+            return { value: 0, error: !result.success ? result.error : null }; // 默认中性
         } catch (error) {
-            console.error('获取商品ETF动量得分失败:', error);
-            return { value: 2.5, error: error.message }; // 默认数据
+            console.error('获取商品价格动量失败:', error);
+            return { value: 0, error: error.message }; // 默认中性
         }
     }
     
@@ -275,7 +275,7 @@ class MacroDataFetcher {
                 growthValuationPercentile: 45,
                 growthPEPercentile: 45,
                 dividendYield: 3.2,
-                commodityMomentum: 2.5,
+                commodityMomentum: 0,
                 hasError: true,
                 errors: [errorMessage],
                 hasNotes: false,
@@ -301,7 +301,7 @@ class MacroDataFetcher {
         const growthValueDispersionResult = this.getIndicatorResult(sourceData, ['growthValueDispersion'], 0);
         const growthValuationPercentileResult = this.getIndicatorResult(sourceData, ['growthValuationPercentile', 'growthPEPercentile'], 45);
         const dividendYieldResult = this.getIndicatorResult(sourceData, ['dividendYield'], 3.2);
-        const commodityMomentumResult = this.getIndicatorResult(sourceData, ['commodityMomentum'], 2.5);
+        const commodityMomentumResult = this.getIndicatorResult(sourceData, ['commodityMomentum'], 0);
 
         // 提取值并检查错误
         const results = [pmiResult, socialFinanceResult, cpiResult, ppiResult, m1m2Result, bondYieldResult, turnoverMomentumResult, erpResult, growthValueDispersionResult, growthValuationPercentileResult, dividendYieldResult, commodityMomentumResult];
