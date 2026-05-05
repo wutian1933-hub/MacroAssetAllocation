@@ -84,6 +84,7 @@ The project already includes the `.github/workflows/fetch-data.yml` file, which 
 | <br />               | **Stock-Bond Spread (ERP)**              | AkShare + Calculated | Uses CSI All Share `000985` rolling PE and 10-year Treasury yield to build a daily ERP history; **>80% quantile**: Stocks extremely cheap (left-side layout)**<20% quantile**: Stocks extremely expensive (right-side reduction) |
 | **Market Factors** | **Growth/Value Dispersion** | AkShare + Calculated | Uses CSI 800 Growth `H30355` and CSI 800 Value `H30356` daily closes, `0.4 × 20-day excess return + 0.6 × 60-day excess return`; only tilts growth/dividend equity allocation and does not change the stock-bond ratio |
 | <br /> | **Growth Style Valuation Percentile** | AkShare + Calculated | Uses CSI 800 Growth `H30355` daily rolling PE to calculate the current PE historical percentile; replaces the inconsistent valuation basis across multiple growth ETFs, and lower percentile means a higher growth ETF valuation score |
+| <br /> | **Dividend Style Yield** | AkShare | Uses CSI Dividend `000922` index valuation data and takes the latest `股息率2`, falling back to `股息率1` when needed; replaces inconsistent distribution-yield bases across multiple dividend ETFs |
 
 ### ETF Pool
 

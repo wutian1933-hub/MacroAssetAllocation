@@ -20,6 +20,7 @@ CSI_ALL_SHARE_SYMBOL = "000985"
 CSI_ALL_SHARE_ERP_START_DATE = "20041231"
 CSI_800_GROWTH_SYMBOL = "H30355"
 CSI_800_VALUE_SYMBOL = "H30356"
+CSI_DIVIDEND_SYMBOL = "000922"
 BOND_YIELD_10Y_COLUMN = "中国国债收益率10年"
 CSI_ROLLING_PE_COLUMNS = (
     "滚动市盈率",
@@ -27,6 +28,12 @@ CSI_ROLLING_PE_COLUMNS = (
     "市盈率TTM",
     "PE_TTM",
     "pe_ttm",
+)
+CSI_DIVIDEND_YIELD_COLUMNS = (
+    "股息率2",
+    "股息率1",
+    "股息率",
+    "dividend_yield",
 )
 
 
@@ -279,6 +286,26 @@ def extract_growth_valuation_percentile(df: pd.DataFrame) -> float:
     return round(float(percentile), 2)
 
 
+def extract_dividend_yield(df: pd.DataFrame) -> float:
+    label = f"AkShare stock_zh_index_value_csindex 中证红利({CSI_DIVIDEND_SYMBOL})估值数据"
+    if df.empty:
+        raise ValueError(f"{label}返回数据为空，无法计算红利风格股息率")
+
+    date_column = _date_column(df, label)
+    dividend_column = _first_existing_column(df, CSI_DIVIDEND_YIELD_COLUMNS, label)
+    prepared = pd.DataFrame(
+        {
+            "date": pd.to_datetime(df[date_column], errors="coerce"),
+            "dividend_yield": pd.to_numeric(df[dividend_column], errors="coerce"),
+        }
+    ).dropna()
+    prepared = prepared[prepared["dividend_yield"] > 0].sort_values("date")
+    if prepared.empty:
+        raise ValueError(f"{label}股息率没有可用正数值，无法计算红利风格股息率")
+
+    return round(float(prepared["dividend_yield"].iloc[-1]), 2)
+
+
 def extract_erp_percentile(inputs: dict[str, pd.DataFrame]) -> float:
     index_df = _prepare_csi_valuation(inputs["index"])
     bond_df = _prepare_bond_yield(inputs["bond"])
@@ -346,6 +373,10 @@ def fetch_growth_valuation_history(ak_module) -> pd.DataFrame:
     )
 
 
+def fetch_dividend_yield_data(ak_module) -> pd.DataFrame:
+    return ak_module.stock_zh_index_value_csindex(symbol=CSI_DIVIDEND_SYMBOL)
+
+
 def fetch_indicator(
     *,
     key: str,
@@ -404,6 +435,12 @@ def build_data(ak_module) -> dict:
             lambda: fetch_growth_valuation_history(ak_module),
             extract_growth_valuation_percentile,
         ),
+        (
+            "dividendYield",
+            "中证红利股息率",
+            lambda: fetch_dividend_yield_data(ak_module),
+            extract_dividend_yield,
+        ),
     ]
 
     indicators: dict[str, float] = {}
@@ -438,7 +475,6 @@ def build_data(ak_module) -> dict:
 
     # 尚未实现实时计算的因子保持默认值，但明确标注来源。
     manual_defaults = {
-        "dividendYield": "红利股ETF股息率",
         "commodityMomentum": "商品ETF动量得分",
     }
     for key, label in manual_defaults.items():

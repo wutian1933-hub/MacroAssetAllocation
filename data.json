@@ -11,10 +11,10 @@
     "erp": 49.1,
     "growthValueDispersion": 7.89,
     "growthValuationPercentile": 97.59,
+    "dividendYield": 4.79,
     "turnover": 3.27,
     "turnoverYoY": 3.27,
     "growthPEPercentile": 97.59,
-    "dividendYield": 3.2,
     "commodityMomentum": 2.5
   },
   "sources": {
@@ -28,15 +28,14 @@
     "erp": "akshare",
     "growthValueDispersion": "akshare",
     "growthValuationPercentile": "akshare",
+    "dividendYield": "akshare",
     "turnover": "akshare",
     "turnoverYoY": "akshare",
     "growthPEPercentile": "akshare",
-    "dividendYield": "manual_default",
     "commodityMomentum": "manual_default"
   },
   "errors": {},
   "notes": {
-    "dividendYield": "红利股ETF股息率暂未实现自动计算，保留默认/手动值",
     "commodityMomentum": "商品ETF动量得分暂未实现自动计算，保留默认/手动值"
   }
 }

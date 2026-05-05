@@ -43,7 +43,7 @@ test('getAllMacroData reads data.json once and extracts all indicators', async (
                         erp: 49.1,
                         growthValueDispersion: 7.89,
                         growthValuationPercentile: 97.59,
-                        dividendYield: 3.2,
+                        dividendYield: 5.2,
                         commodityMomentum: 2.5,
                     },
                     sources: {},
@@ -59,6 +59,7 @@ test('getAllMacroData reads data.json once and extracts all indicators', async (
     assert.equal(fetchCount, 1);
     assert.equal(data.growthValuationPercentile, 97.59);
     assert.equal(data.growthPEPercentile, 97.59);
+    assert.equal(data.dividendYield, 5.2);
     assert.equal(data.hasError, false);
 });
 

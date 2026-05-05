@@ -194,6 +194,36 @@ class FetchDataExtractionTests(unittest.TestCase):
         ):
             fetch_data.extract_growth_valuation_percentile(df)
 
+    def test_extract_dividend_yield_uses_latest_csi_dividend_yield_2(self):
+        df = pd.DataFrame(
+            {
+                "日期": ["2026-04-29", "2026-04-30"],
+                "股息率1": [4.5, 4.6],
+                "股息率2": [5.1, 5.2],
+            }
+        )
+
+        self.assertEqual(fetch_data.extract_dividend_yield(df), 5.2)
+
+    def test_extract_dividend_yield_falls_back_to_dividend_yield_1(self):
+        df = pd.DataFrame(
+            {
+                "日期": ["2026-04-29", "2026-04-30"],
+                "股息率1": [4.5, 4.6],
+            }
+        )
+
+        self.assertEqual(fetch_data.extract_dividend_yield(df), 4.6)
+
+    def test_extract_dividend_yield_reports_missing_column(self):
+        df = pd.DataFrame({"日期": ["2026-04-30"], "滚动市盈率": [8.63]})
+
+        with self.assertRaisesRegex(
+            KeyError,
+            "中证红利.*股息率2.*当前列",
+        ):
+            fetch_data.extract_dividend_yield(df)
+
     def test_build_data_keeps_manual_defaults_out_of_errors(self):
         dates = pd.date_range("2025-01-01", periods=260, freq="B")
 
@@ -245,6 +275,15 @@ class FetchDataExtractionTests(unittest.TestCase):
                     }
                 )
 
+            def stock_zh_index_value_csindex(self, symbol):
+                return pd.DataFrame(
+                    {
+                        "日期": ["2026-04-29", "2026-04-30"],
+                        "股息率1": [4.5, 4.6],
+                        "股息率2": [5.1, 5.2],
+                    }
+                )
+
         data = fetch_data.build_data(FakeAk())
 
         self.assertIn("growthValuationPercentile", data["indicators"])
@@ -254,11 +293,14 @@ class FetchDataExtractionTests(unittest.TestCase):
         )
         self.assertEqual(data["sources"]["growthValuationPercentile"], "akshare")
         self.assertEqual(data["sources"]["growthPEPercentile"], "akshare")
+        self.assertEqual(data["indicators"]["dividendYield"], 5.2)
+        self.assertEqual(data["sources"]["dividendYield"], "akshare")
         self.assertNotIn("growthValuationPercentile", data["errors"])
         self.assertNotIn("growthPEPercentile", data["errors"])
         self.assertNotIn("dividendYield", data["errors"])
         self.assertNotIn("commodityMomentum", data["errors"])
         self.assertNotIn("growthPEPercentile", data["notes"])
+        self.assertNotIn("dividendYield", data["notes"])
 
 
 if __name__ == "__main__":

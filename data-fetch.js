@@ -138,7 +138,7 @@ class MacroDataFetcher {
         }
     }
     
-    // 获取红利股ETF股息率
+    // 获取红利风格股息率
     async getDividendYield() {
         try {
             const result = await this.fetchDataFromJson();
@@ -147,7 +147,7 @@ class MacroDataFetcher {
             }
             return { value: 3.2, error: !result.success ? result.error : null }; // 默认数据
         } catch (error) {
-            console.error('获取红利股ETF股息率失败:', error);
+            console.error('获取红利风格股息率失败:', error);
             return { value: 3.2, error: error.message }; // 默认数据
         }
     }
