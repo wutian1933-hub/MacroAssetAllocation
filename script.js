@@ -355,7 +355,7 @@ function calculateAllocation() {
     const growthValueDispersion = parseFloat(document.getElementById('growth-value-dispersion').value) || 0;
     const growthValuationPercentile = parseFloat(document.getElementById('growth-valuation').value) || 50;
     const dividendDy = parseFloat(document.getElementById('dividend-dy').value) || 4.5;
-    const commodityMomentum = parseFloat(document.getElementById('commodity-momentum').value) || 0.5;
+    const commodityMomentum = parseFloat(document.getElementById('commodity-momentum').value) || 0;
     
     // 计算四维得分
     const growthScore = calculateGrowthScore(pmi, sfTrend);
@@ -615,8 +615,8 @@ function calculateEtfScores(growthValuationPercentile, dividendDy, commodityMome
     etfPool.commodity.forEach(etf => {
         // 估值因子：商品不适用PE，设为0.5
         const valuation = 0.5;
-        // 动量因子：使用输入的商品动量得分
-        const momentum = commodityMomentum;
+        // 动量因子：商品价格动量百分比转换为0-1得分，-10%为0，0%为0.5，+10%为1
+        const momentum = Math.max(0, Math.min(1, 0.5 + commodityMomentum / 20));
         // 风险因子：假设为0.4（商品波动率较高）
         const risk = 0.4;
         // 综合得分
