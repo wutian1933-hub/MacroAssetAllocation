@@ -43,10 +43,17 @@ test('market factor input explains source and calculation method', () => {
     assert.match(html, /红利风格股息率 \(%\)/);
     assert.match(html, /中证红利\(000922\)指数估值数据/);
     assert.match(html, /最新股息率2/);
+    assert.match(html, /商品价格动量 \(%\)/);
+    assert.match(html, /来源: AkShare\/中证商品指数 \+ 计算/);
+    assert.match(html, /优先 AkShare futures_index_ccidx/);
+    assert.match(html, /失败时回退同源中证商品指数接口/);
+    assert.match(html, /中证商品期货价格指数日频收盘点位/);
+    assert.match(html, /0\.4×20日收益率 \+ 0\.6×60日收益率/);
     assert.match(html, /仅微调成长\/红利，不改变股债比例/);
     assert.doesNotMatch(html, /id="turnover-trend"/);
     assert.doesNotMatch(html, /成长股ETF PE分位数/);
     assert.doesNotMatch(html, /红利股ETF股息率/);
+    assert.doesNotMatch(html, /商品ETF动量得分/);
 });
 
 test('growth value dispersion only tilts internal equity allocation', () => {
@@ -69,7 +76,7 @@ test('growth value dispersion only tilts internal equity allocation', () => {
     assert.equal(valueTilt.total, base.total);
 });
 
-test('manual default notes are not reported as fetch failures', () => {
+test('manual notes are not reported as fetch failures', () => {
     const { formatFetchNotes } = loadDashboardScript();
 
     assert.match(
@@ -80,4 +87,16 @@ test('manual default notes are not reported as fetch failures', () => {
         formatFetchNotes(['commodityMomentum: 暂未实现自动计算，保留默认/手动值']),
         /获取失败/
     );
+});
+
+test('commodity momentum percent is converted to bounded score', () => {
+    const { calculateEtfScores } = loadDashboardScript();
+
+    const neutral = calculateEtfScores(50, 4.5, 0)['518880.SH'];
+    const strong = calculateEtfScores(50, 4.5, 12)['518880.SH'];
+    const weak = calculateEtfScores(50, 4.5, -12)['518880.SH'];
+
+    assert.equal(neutral.momentum, '0.50');
+    assert.equal(strong.momentum, '1.00');
+    assert.equal(weak.momentum, '0.00');
 });
