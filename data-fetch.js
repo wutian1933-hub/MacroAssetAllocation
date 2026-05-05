@@ -101,18 +101,27 @@ class MacroDataFetcher {
         return this.getTurnoverMomentum();
     }
     
-    // 获取成长股ETF PE分位数
-    async getGrowthPEPercentile() {
+    // 获取成长风格估值分位数
+    async getGrowthValuationPercentile() {
         try {
             const result = await this.fetchDataFromJson();
             if (result.success && result.data && result.data.indicators) {
-                return this.getIndicatorResult(result.data, ['growthPEPercentile'], 45);
+                return this.getIndicatorResult(
+                    result.data,
+                    ['growthValuationPercentile', 'growthPEPercentile'],
+                    45
+                );
             }
             return { value: 45, error: !result.success ? result.error : null }; // 默认数据
         } catch (error) {
-            console.error('获取成长股ETF PE分位数失败:', error);
+            console.error('获取成长风格估值分位数失败:', error);
             return { value: 45, error: error.message }; // 默认数据
         }
+    }
+
+    // 兼容旧方法名
+    async getGrowthPEPercentile() {
+        return this.getGrowthValuationPercentile();
     }
 
     // 获取成长/价值分化度
@@ -248,24 +257,54 @@ class MacroDataFetcher {
     
     // 获取所有宏观数据
     async getAllMacroData() {
-        // 并行获取所有数据
-        const [pmiResult, socialFinanceResult, cpiResult, ppiResult, m1m2Result, bondYieldResult, turnoverMomentumResult, erpResult, growthValueDispersionResult, growthPEPercentileResult, dividendYieldResult, commodityMomentumResult] = await Promise.all([
-            this.getPMI(),
-            this.getSocialFinance(),
-            this.getCPI(),
-            this.getPPI(),
-            this.getM1M2(),
-            this.getBondYield(),
-            this.getTurnoverMomentum(),
-            this.getERP(),
-            this.getGrowthValueDispersion(),
-            this.getGrowthPEPercentile(),
-            this.getDividendYield(),
-            this.getCommodityMomentum()
-        ]);
+        const result = await this.fetchDataFromJson();
+        if (!result.success || !result.data || !result.data.indicators) {
+            const errorMessage = `无法读取 data.json：${result.error || '数据文件格式异常'}。请确认通过 GitHub Pages 页面访问，并检查网络或浏览器拦截。`;
+            const fallbackData = {
+                pmi: 51.2,
+                socialFinance: 9.8,
+                cpi: 2.1,
+                ppi: -0.5,
+                m1m2: -1.2,
+                bondYield: 2.65,
+                turnover: 15.3,
+                turnoverMomentum: 15.3,
+                erp: 65,
+                turnoverYoY: 15.3,
+                growthValueDispersion: 0,
+                growthValuationPercentile: 45,
+                growthPEPercentile: 45,
+                dividendYield: 3.2,
+                commodityMomentum: 2.5,
+                hasError: true,
+                errors: [errorMessage],
+                hasNotes: false,
+                notes: []
+            };
+
+            this.dataCache = fallbackData;
+            this.lastFetchTime = new Date().toISOString();
+            localStorage.setItem('macroDataCache', JSON.stringify(fallbackData));
+            localStorage.setItem('lastFetchTime', this.lastFetchTime);
+            return fallbackData;
+        }
+
+        const sourceData = result.data;
+        const pmiResult = this.getIndicatorResult(sourceData, ['pmi'], 51.2);
+        const socialFinanceResult = this.getIndicatorResult(sourceData, ['socialFinance'], 9.8);
+        const cpiResult = this.getIndicatorResult(sourceData, ['cpi'], 2.1);
+        const ppiResult = this.getIndicatorResult(sourceData, ['ppi'], -0.5);
+        const m1m2Result = this.getIndicatorResult(sourceData, ['m1m2'], -1.2);
+        const bondYieldResult = this.getIndicatorResult(sourceData, ['bondYield'], 2.65);
+        const turnoverMomentumResult = this.getIndicatorResult(sourceData, ['turnoverMomentum', 'turnover', 'turnoverYoY'], 15.3);
+        const erpResult = this.getIndicatorResult(sourceData, ['erp'], 65);
+        const growthValueDispersionResult = this.getIndicatorResult(sourceData, ['growthValueDispersion'], 0);
+        const growthValuationPercentileResult = this.getIndicatorResult(sourceData, ['growthValuationPercentile', 'growthPEPercentile'], 45);
+        const dividendYieldResult = this.getIndicatorResult(sourceData, ['dividendYield'], 3.2);
+        const commodityMomentumResult = this.getIndicatorResult(sourceData, ['commodityMomentum'], 2.5);
 
         // 提取值并检查错误
-        const results = [pmiResult, socialFinanceResult, cpiResult, ppiResult, m1m2Result, bondYieldResult, turnoverMomentumResult, erpResult, growthValueDispersionResult, growthPEPercentileResult, dividendYieldResult, commodityMomentumResult];
+        const results = [pmiResult, socialFinanceResult, cpiResult, ppiResult, m1m2Result, bondYieldResult, turnoverMomentumResult, erpResult, growthValueDispersionResult, growthValuationPercentileResult, dividendYieldResult, commodityMomentumResult];
         const errors = results
             .filter(result => typeof result === 'object' && result.error)
             .map(result => result.error);
@@ -285,7 +324,7 @@ class MacroDataFetcher {
         const turnoverMomentum = typeof turnoverMomentumResult === 'object' ? turnoverMomentumResult.value : turnoverMomentumResult;
         const erp = typeof erpResult === 'object' ? erpResult.value : erpResult;
         const growthValueDispersion = typeof growthValueDispersionResult === 'object' ? growthValueDispersionResult.value : growthValueDispersionResult;
-        const growthPEPercentile = typeof growthPEPercentileResult === 'object' ? growthPEPercentileResult.value : growthPEPercentileResult;
+        const growthValuationPercentile = typeof growthValuationPercentileResult === 'object' ? growthValuationPercentileResult.value : growthValuationPercentileResult;
         const dividendYield = typeof dividendYieldResult === 'object' ? dividendYieldResult.value : dividendYieldResult;
         const commodityMomentum = typeof commodityMomentumResult === 'object' ? commodityMomentumResult.value : commodityMomentumResult;
         
@@ -301,7 +340,8 @@ class MacroDataFetcher {
             erp,
             turnoverYoY: turnoverMomentum,
             growthValueDispersion,
-            growthPEPercentile,
+            growthValuationPercentile,
+            growthPEPercentile: growthValuationPercentile,
             dividendYield,
             commodityMomentum,
             hasError, // 添加错误标志

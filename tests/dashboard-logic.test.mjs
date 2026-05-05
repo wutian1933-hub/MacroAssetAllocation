@@ -35,10 +35,14 @@ function loadDashboardScript() {
 test('market factor input explains source and calculation method', () => {
     assert.match(html, /市场因子 \(Market Factors\)/);
     assert.match(html, /成长\/价值分化度 \(%\)/);
+    assert.match(html, /成长风格估值分位数 \(%\)/);
     assert.match(html, /来源: AkShare \+ 计算/);
     assert.match(html, /0\.4×20日超额收益 \+ 0\.6×60日超额收益/);
+    assert.match(html, /中证800成长\(H30355\)日频滚动市盈率/);
+    assert.match(html, /替代多个成长ETF的估值口径/);
     assert.match(html, /仅微调成长\/红利，不改变股债比例/);
     assert.doesNotMatch(html, /id="turnover-trend"/);
+    assert.doesNotMatch(html, /成长股ETF PE分位数/);
 });
 
 test('growth value dispersion only tilts internal equity allocation', () => {
@@ -65,11 +69,11 @@ test('manual default notes are not reported as fetch failures', () => {
     const { formatFetchNotes } = loadDashboardScript();
 
     assert.match(
-        formatFetchNotes(['growthPEPercentile: 暂未实现自动计算，保留默认/手动值']),
+        formatFetchNotes(['dividendYield: 暂未实现自动计算，保留默认/手动值']),
         /自动数据获取成功/
     );
     assert.doesNotMatch(
-        formatFetchNotes(['growthPEPercentile: 暂未实现自动计算，保留默认/手动值']),
+        formatFetchNotes(['dividendYield: 暂未实现自动计算，保留默认/手动值']),
         /获取失败/
     );
 });

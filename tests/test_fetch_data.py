@@ -169,8 +169,33 @@ class FetchDataExtractionTests(unittest.TestCase):
                 {"growth": growth, "value": value}
             )
 
+    def test_extract_growth_valuation_percentile_uses_csi_800_growth_pe(self):
+        dates = pd.date_range("2025-01-01", periods=252, freq="B")
+        df = pd.DataFrame(
+            {
+                "日期": dates,
+                "滚动市盈率": list(range(10, 262)),
+            }
+        )
+
+        self.assertEqual(fetch_data.extract_growth_valuation_percentile(df), 100.0)
+
+    def test_extract_growth_valuation_percentile_reports_missing_pe_column(self):
+        df = pd.DataFrame(
+            {
+                "日期": pd.date_range("2025-01-01", periods=252, freq="B"),
+                "收盘": range(252),
+            }
+        )
+
+        with self.assertRaisesRegex(
+            KeyError,
+            "中证800成长.*滚动市盈率.*当前列",
+        ):
+            fetch_data.extract_growth_valuation_percentile(df)
+
     def test_build_data_keeps_manual_defaults_out_of_errors(self):
-        dates = pd.date_range("2026-01-01", periods=61, freq="B")
+        dates = pd.date_range("2025-01-01", periods=260, freq="B")
 
         class FakeAk:
             def macro_china_pmi(self):
@@ -203,24 +228,37 @@ class FetchDataExtractionTests(unittest.TestCase):
 
             def stock_zh_index_hist_csindex(self, symbol, start_date, end_date):
                 if symbol == fetch_data.CSI_800_GROWTH_SYMBOL:
-                    return pd.DataFrame({"日期": dates, "收盘": range(100, 161)})
+                    return pd.DataFrame(
+                        {
+                            "日期": dates,
+                            "收盘": range(100, 360),
+                            "滚动市盈率": range(10, 270),
+                        }
+                    )
                 if symbol == fetch_data.CSI_800_VALUE_SYMBOL:
-                    return pd.DataFrame({"日期": dates, "收盘": range(100, 161)})
+                    return pd.DataFrame({"日期": dates, "收盘": range(100, 360)})
                 return pd.DataFrame(
                     {
                         "日期": dates,
-                        "成交金额": range(100, 161),
+                        "成交金额": range(100, 360),
                         "滚动市盈率": [20.0] * len(dates),
                     }
                 )
 
         data = fetch_data.build_data(FakeAk())
 
+        self.assertIn("growthValuationPercentile", data["indicators"])
+        self.assertEqual(
+            data["indicators"]["growthPEPercentile"],
+            data["indicators"]["growthValuationPercentile"],
+        )
+        self.assertEqual(data["sources"]["growthValuationPercentile"], "akshare")
+        self.assertEqual(data["sources"]["growthPEPercentile"], "akshare")
+        self.assertNotIn("growthValuationPercentile", data["errors"])
         self.assertNotIn("growthPEPercentile", data["errors"])
         self.assertNotIn("dividendYield", data["errors"])
         self.assertNotIn("commodityMomentum", data["errors"])
-        self.assertIn("growthPEPercentile", data["notes"])
-        self.assertEqual(data["sources"]["growthPEPercentile"], "manual_default")
+        self.assertNotIn("growthPEPercentile", data["notes"])
 
 
 if __name__ == "__main__":

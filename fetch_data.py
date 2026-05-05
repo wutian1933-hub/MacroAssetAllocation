@@ -42,6 +42,7 @@ DEFAULT_INDICATORS = {
     "turnoverYoY": 15.3,
     "erp": 65,
     "growthValueDispersion": 0.0,
+    "growthValuationPercentile": 45,
     "growthPEPercentile": 45,
     "dividendYield": 3.2,
     "commodityMomentum": 2.5,
@@ -166,15 +167,15 @@ def _first_existing_column(df: pd.DataFrame, candidates: tuple[str, ...], label:
     return column
 
 
-def _prepare_csi_valuation(df: pd.DataFrame) -> pd.DataFrame:
+def _prepare_index_valuation(df: pd.DataFrame, label: str, purpose: str) -> pd.DataFrame:
     if df.empty:
-        raise ValueError("AkShare stock_zh_index_hist_csindex 返回数据为空，无法计算中证全指ERP")
+        raise ValueError(f"{label}返回数据为空，无法{purpose}")
 
-    date_column = _date_column(df, "AkShare stock_zh_index_hist_csindex 中证全指日频数据")
+    date_column = _date_column(df, label)
     pe_column = _first_existing_column(
         df,
         CSI_ROLLING_PE_COLUMNS,
-        "AkShare stock_zh_index_hist_csindex 中证全指日频数据",
+        label,
     )
 
     prepared = pd.DataFrame(
@@ -185,8 +186,16 @@ def _prepare_csi_valuation(df: pd.DataFrame) -> pd.DataFrame:
     ).dropna()
     prepared = prepared[prepared["pe"] > 0].sort_values("date")
     if prepared.empty:
-        raise ValueError("中证全指滚动市盈率没有可用正数值，无法计算ERP")
+        raise ValueError(f"{label}滚动市盈率没有可用正数值，无法{purpose}")
     return prepared
+
+
+def _prepare_csi_valuation(df: pd.DataFrame) -> pd.DataFrame:
+    return _prepare_index_valuation(
+        df,
+        "AkShare stock_zh_index_hist_csindex 中证全指日频数据",
+        "计算中证全指ERP",
+    )
 
 
 def _prepare_bond_yield(df: pd.DataFrame) -> pd.DataFrame:
@@ -256,6 +265,20 @@ def extract_growth_value_dispersion(inputs: dict[str, pd.DataFrame]) -> float:
     return round(dispersion * 100, 2)
 
 
+def extract_growth_valuation_percentile(df: pd.DataFrame) -> float:
+    valuation = _prepare_index_valuation(
+        df,
+        f"AkShare stock_zh_index_hist_csindex 中证800成长({CSI_800_GROWTH_SYMBOL})日频数据",
+        "计算成长风格估值分位数",
+    )
+    if len(valuation) < 252:
+        raise ValueError("中证800成长滚动市盈率历史数据不足 252 个交易日，无法计算成长风格估值分位数")
+
+    current_pe = valuation["pe"].iloc[-1]
+    percentile = (valuation["pe"] <= current_pe).mean() * 100
+    return round(float(percentile), 2)
+
+
 def extract_erp_percentile(inputs: dict[str, pd.DataFrame]) -> float:
     index_df = _prepare_csi_valuation(inputs["index"])
     bond_df = _prepare_bond_yield(inputs["bond"])
@@ -314,6 +337,15 @@ def fetch_growth_value_inputs(ak_module) -> dict[str, pd.DataFrame]:
     }
 
 
+def fetch_growth_valuation_history(ak_module) -> pd.DataFrame:
+    end_date = datetime.datetime.now()
+    return ak_module.stock_zh_index_hist_csindex(
+        symbol=CSI_800_GROWTH_SYMBOL,
+        start_date=CSI_ALL_SHARE_ERP_START_DATE,
+        end_date=end_date.strftime("%Y%m%d"),
+    )
+
+
 def fetch_indicator(
     *,
     key: str,
@@ -366,6 +398,12 @@ def build_data(ak_module) -> dict:
             lambda: fetch_growth_value_inputs(ak_module),
             extract_growth_value_dispersion,
         ),
+        (
+            "growthValuationPercentile",
+            "中证800成长估值历史分位数",
+            lambda: fetch_growth_valuation_history(ak_module),
+            extract_growth_valuation_percentile,
+        ),
     ]
 
     indicators: dict[str, float] = {}
@@ -393,9 +431,13 @@ def build_data(ak_module) -> dict:
         if "turnoverMomentum" in errors:
             errors[legacy_key] = errors["turnoverMomentum"]
 
+    indicators["growthPEPercentile"] = indicators["growthValuationPercentile"]
+    sources["growthPEPercentile"] = sources["growthValuationPercentile"]
+    if "growthValuationPercentile" in errors:
+        errors["growthPEPercentile"] = errors["growthValuationPercentile"]
+
     # 尚未实现实时计算的因子保持默认值，但明确标注来源。
     manual_defaults = {
-        "growthPEPercentile": "成长股ETF PE分位数",
         "dividendYield": "红利股ETF股息率",
         "commodityMomentum": "商品ETF动量得分",
     }

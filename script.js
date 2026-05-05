@@ -228,7 +228,7 @@ async function autoFetchData() {
 
         // 填充派生指标
         setMetricInput('growth-value-dispersion', data.growthValueDispersion);
-        setMetricInput('growth-pe', data.growthPEPercentile);
+        setMetricInput('growth-valuation', data.growthValuationPercentile ?? data.growthPEPercentile);
         setMetricInput('dividend-dy', data.dividendYield);
         setMetricInput('commodity-momentum', data.commodityMomentum);
         
@@ -353,7 +353,7 @@ function calculateAllocation() {
     const erp = parseFloat(document.getElementById('erp').value) || 0;
     // 获取市场因子
     const growthValueDispersion = parseFloat(document.getElementById('growth-value-dispersion').value) || 0;
-    const growthPe = parseFloat(document.getElementById('growth-pe').value) || 50;
+    const growthValuationPercentile = parseFloat(document.getElementById('growth-valuation').value) || 50;
     const dividendDy = parseFloat(document.getElementById('dividend-dy').value) || 4.5;
     const commodityMomentum = parseFloat(document.getElementById('commodity-momentum').value) || 0.5;
     
@@ -380,7 +380,7 @@ function calculateAllocation() {
     const allocation = calculateAssetAllocation(stage, turnoverMomentum, erp, growthValueDispersion);
     
     // 计算ETF标的因子得分
-    const etfScores = calculateEtfScores(growthPe, dividendDy, commodityMomentum);
+    const etfScores = calculateEtfScores(growthValuationPercentile, dividendDy, commodityMomentum);
     
     // 计算智能权重分配
     const etfAllocations = calculateEtfAllocations(stage, allocation, etfScores);
@@ -564,14 +564,14 @@ function updateChart(allocation) {
 }
 
 // 计算ETF标的因子得分
-function calculateEtfScores(growthPe, dividendDy, commodityMomentum) {
+function calculateEtfScores(growthValuationPercentile, dividendDy, commodityMomentum) {
     const scores = {};
     
     // 成长股因子得分
     const growthEtfs = [...etfPool.growth.wide, ...etfPool.growth.tech, ...etfPool.growth.cross];
     growthEtfs.forEach(etf => {
-        // 估值因子：PE分位数越低，得分越高
-        const valuation = 1 - (growthPe / 100);
+        // 估值因子：成长风格估值分位数越低，得分越高
+        const valuation = 1 - (growthValuationPercentile / 100);
         // 动量因子：假设为0.5（实际应根据20日收益率计算）
         const momentum = 0.5;
         // 风险因子：假设为0.5（实际应根据波动率计算）
