@@ -37,6 +37,13 @@ CSI_DIVIDEND_YIELD_COLUMNS = (
     "股息率",
     "dividend_yield",
 )
+PPI_MOM_COLUMNS = (
+    "当月环比增长",
+    "环比增长",
+    "环比",
+    "ppi_mom",
+)
+TREND_VALUES = ("up", "down", "stable")
 
 
 DEFAULT_INDICATORS = {
@@ -50,21 +57,47 @@ DEFAULT_INDICATORS = {
     "turnover": 15.3,
     "turnoverYoY": 15.3,
     "erp": 65,
+    "marketSentimentScore": 1,
     "growthValueDispersion": 0.0,
     "growthValuationPercentile": 45,
     "growthPEPercentile": 45,
     "dividendYield": 3.2,
     "commodityMomentum": 0.0,
 }
+DEFAULT_TRENDS = {
+    "socialFinanceTrend": "stable",
+    "ppiTrend": "stable",
+    "bondYieldTrend": "stable",
+}
 
 
 @dataclass
 class IndicatorResult:
     key: str
-    value: float
+    value: object
     success: bool
     source: str
     error: Optional[str] = None
+
+
+def calculate_market_sentiment_score(turnover_momentum: float, erp: float) -> int:
+    if turnover_momentum > 50:
+        turnover_contribution = 2
+    elif turnover_momentum > 0:
+        turnover_contribution = 1
+    elif turnover_momentum < -20:
+        turnover_contribution = -2
+    else:
+        turnover_contribution = -1
+
+    if erp > 80:
+        erp_contribution = -1
+    elif erp < 20:
+        erp_contribution = 1
+    else:
+        erp_contribution = 0
+
+    return turnover_contribution + erp_contribution
 
 
 def _latest_non_null(df: pd.DataFrame, column: str) -> float:
@@ -83,24 +116,77 @@ def extract_pmi(df: pd.DataFrame) -> float:
     return _latest_non_null(df, "制造业-指数")
 
 
-def extract_social_finance(df: pd.DataFrame) -> float:
+def _parse_date_like(series: pd.Series) -> pd.Series:
+    normalized = (
+        series.astype(str)
+        .str.strip()
+        .str.replace("年", "-", regex=False)
+        .str.replace("月份", "", regex=False)
+        .str.replace("月", "", regex=False)
+    )
+    normalized = normalized.str.replace(r"^(\d{4})(\d{2})(\d{2})$", r"\1-\2-\3", regex=True)
+    normalized = normalized.str.replace(r"^(\d{4})-(\d{1,2})$", r"\1-\2-01", regex=True)
+    return pd.to_datetime(normalized, format="%Y-%m-%d", errors="coerce")
+
+
+def _sort_by_date_like(df: pd.DataFrame) -> pd.DataFrame:
+    date_column = next((name for name in ("日期", "月份", "date", "month") if name in df.columns), None)
+    if date_column is None:
+        return df
+
+    prepared = df.copy()
+    prepared["_sort_date"] = _parse_date_like(prepared[date_column])
+    if prepared["_sort_date"].notna().any():
+        prepared = prepared.sort_values("_sort_date")
+    return prepared.drop(columns=["_sort_date"])
+
+
+def _social_finance_yoy_series(df: pd.DataFrame) -> pd.Series:
     # 当前 AkShare 的 macro_china_shrzgm 返回社融规模增量，不含“存量同比”。
-    # 暂用最新社融增量近 12 个月同比作为可自动计算的代理指标。
+    # 暂用社融增量近 12 个月同比作为可自动计算的代理指标。
     if df.empty:
         raise ValueError("数据为空")
     column = "社会融资规模增量"
     if column not in df.columns:
         raise KeyError(f"缺少可用列: {column}; 当前列: {', '.join(map(str, df.columns))}")
 
-    values = pd.to_numeric(df[column], errors="coerce")
-    if len(values.dropna()) < 13:
+    prepared = _sort_by_date_like(df)
+    values = pd.to_numeric(prepared[column], errors="coerce").dropna()
+    if len(values) < 13:
         raise ValueError("社融增量数据不足 13 个月，无法计算同比")
 
-    latest = values.iloc[-1]
-    prior_year = values.iloc[-13]
-    if pd.isna(latest) or pd.isna(prior_year) or prior_year == 0:
-        raise ValueError("社融增量最新值或去年同期值不可用")
-    return round((float(latest) / float(prior_year) - 1) * 100, 2)
+    yoy = (values / values.shift(12) - 1) * 100
+    yoy = yoy.replace([float("inf"), float("-inf")], pd.NA).dropna()
+    if yoy.empty:
+        raise ValueError("社融增量同比序列没有可用数值")
+    return yoy
+
+
+def extract_social_finance(df: pd.DataFrame) -> float:
+    return round(float(_social_finance_yoy_series(df).iloc[-1]), 2)
+
+
+def _trend_from_recent_change(series: pd.Series, *, lookback: int, stable_threshold: float) -> str:
+    values = pd.to_numeric(series, errors="coerce").dropna()
+    if len(values) < lookback + 1:
+        raise ValueError(f"趋势判定需要至少 {lookback + 1} 个有效观察值")
+
+    recent = values.iloc[-(lookback + 1) :]
+    change = float(recent.iloc[-1] - recent.iloc[0])
+    if abs(change) < stable_threshold:
+        return "stable"
+
+    diffs = recent.diff().dropna()
+    if change > 0 and int((diffs > 0).sum()) >= 2:
+        return "up"
+    if change < 0 and int((diffs < 0).sum()) >= 2:
+        return "down"
+    return "up" if change > 0 else "down"
+
+
+def extract_social_finance_trend(df: pd.DataFrame) -> str:
+    yoy = _social_finance_yoy_series(df)
+    return _trend_from_recent_change(yoy, lookback=3, stable_threshold=0.5)
 
 
 def extract_cpi(df: pd.DataFrame) -> float:
@@ -109,6 +195,36 @@ def extract_cpi(df: pd.DataFrame) -> float:
 
 def extract_ppi(df: pd.DataFrame) -> float:
     return _latest_non_null(df, "当月同比增长")
+
+
+def extract_ppi_trend(df: pd.DataFrame) -> str:
+    if df.empty:
+        raise ValueError("数据为空")
+
+    prepared = _sort_by_date_like(df)
+    mom_column = next((column for column in PPI_MOM_COLUMNS if column in prepared.columns), None)
+    if mom_column is not None:
+        mom = pd.to_numeric(prepared[mom_column], errors="coerce").dropna()
+        if len(mom) < 3:
+            raise ValueError("PPI环比数据不足 3 个月，无法判定趋势")
+        recent = mom.iloc[-3:]
+        if (recent > 0).all():
+            return "up"
+        if (recent < 0).all():
+            return "down"
+        if (recent.abs() <= 0.1).all():
+            return "stable"
+        mean_mom = float(recent.mean())
+        if mean_mom > 0.1 and int((recent > 0).sum()) >= 2:
+            return "up"
+        if mean_mom < -0.1 and int((recent < 0).sum()) >= 2:
+            return "down"
+        return "stable"
+
+    if "当月同比增长" not in prepared.columns:
+        raise KeyError(f"缺少可用列: 当月同比增长; 当前列: {', '.join(map(str, prepared.columns))}")
+    yoy = pd.to_numeric(prepared["当月同比增长"], errors="coerce").dropna()
+    return _trend_from_recent_change(yoy, lookback=3, stable_threshold=0.3)
 
 
 def extract_m1m2(df: pd.DataFrame) -> float:
@@ -123,6 +239,19 @@ def extract_bond_yield(df: pd.DataFrame) -> float:
         df["日期"] = pd.to_datetime(df["日期"], errors="coerce")
         df = df.sort_values("日期", ascending=False)
     return _latest_non_null(df, BOND_YIELD_10Y_COLUMN)
+
+
+def extract_bond_yield_trend(df: pd.DataFrame) -> str:
+    prepared = _prepare_bond_yield(df)
+    if len(prepared) < 21:
+        raise ValueError("10年期国债收益率数据不足 21 个交易日，无法判定20日趋势")
+
+    change_bp = float((prepared["bond_yield"].iloc[-1] - prepared["bond_yield"].iloc[-21]) * 100)
+    if change_bp >= 10:
+        return "up"
+    if change_bp <= -15:
+        return "down"
+    return "stable"
 
 
 def _rolling_qoq(values: pd.Series, window: int) -> float:
@@ -473,15 +602,66 @@ def fetch_indicator(
         )
 
 
+def fetch_trend_indicator(
+    *,
+    key: str,
+    label: str,
+    default: str,
+    fetcher: Callable[[], object],
+    extractor: Callable[[object], str],
+) -> IndicatorResult:
+    print(f"获取{label}...")
+    try:
+        fetched_data = fetcher()
+        value = extractor(fetched_data)
+        if value not in TREND_VALUES:
+            raise ValueError(f"{label}返回了无效趋势值: {value}")
+        source = getattr(fetched_data, "attrs", {}).get("source", "akshare")
+        print(f"  成功: {value}")
+        return IndicatorResult(key=key, value=value, success=True, source=source)
+    except Exception as exc:
+        message = f"{label}获取失败: {exc}"
+        print(f"  失败，使用默认值 {default}: {exc}")
+        return IndicatorResult(
+            key=key,
+            value=default,
+            success=False,
+            source="default",
+            error=message,
+        )
+
+
 def build_data(ak_module) -> dict:
     current_date = datetime.datetime.now().strftime("%Y-%m-%d")
+    fetched_data_cache: dict[str, object] = {}
+
+    def cached_fetch(cache_key: str, fetcher: Callable[[], object]) -> object:
+        if cache_key not in fetched_data_cache:
+            fetched_data_cache[cache_key] = fetcher()
+        return fetched_data_cache[cache_key]
+
     specs = [
         ("pmi", "制造业PMI", ak_module.macro_china_pmi, extract_pmi),
-        ("socialFinance", "社融同比代理指标", ak_module.macro_china_shrzgm, extract_social_finance),
+        (
+            "socialFinance",
+            "社融同比代理指标",
+            lambda: cached_fetch("socialFinance", ak_module.macro_china_shrzgm),
+            extract_social_finance,
+        ),
         ("cpi", "CPI同比", ak_module.macro_china_cpi, extract_cpi),
-        ("ppi", "PPI同比", ak_module.macro_china_ppi, extract_ppi),
+        (
+            "ppi",
+            "PPI同比",
+            lambda: cached_fetch("ppi", ak_module.macro_china_ppi),
+            extract_ppi,
+        ),
         ("m1m2", "M1-M2剪刀差", ak_module.macro_china_money_supply, extract_m1m2),
-        ("bondYield", "10年期国债收益率", ak_module.bond_zh_us_rate, extract_bond_yield),
+        (
+            "bondYield",
+            "10年期国债收益率",
+            lambda: cached_fetch("bondYield", ak_module.bond_zh_us_rate),
+            extract_bond_yield,
+        ),
         (
             "turnoverMomentum",
             "中证全指成交额滚动环比动量",
@@ -519,6 +699,26 @@ def build_data(ak_module) -> dict:
             extract_commodity_momentum,
         ),
     ]
+    trend_specs = [
+        (
+            "socialFinanceTrend",
+            "社融趋势",
+            lambda: cached_fetch("socialFinance", ak_module.macro_china_shrzgm),
+            extract_social_finance_trend,
+        ),
+        (
+            "ppiTrend",
+            "PPI趋势",
+            lambda: cached_fetch("ppi", ak_module.macro_china_ppi),
+            extract_ppi_trend,
+        ),
+        (
+            "bondYieldTrend",
+            "国债收益率趋势",
+            lambda: cached_fetch("bondYield", ak_module.bond_zh_us_rate),
+            extract_bond_yield_trend,
+        ),
+    ]
 
     indicators: dict[str, float] = {}
     errors: dict[str, str] = {}
@@ -538,6 +738,19 @@ def build_data(ak_module) -> dict:
         if result.error:
             errors[result.key] = result.error
 
+    for key, label, fetcher, extractor in trend_specs:
+        result = fetch_trend_indicator(
+            key=key,
+            label=label,
+            default=DEFAULT_TRENDS[key],
+            fetcher=fetcher,
+            extractor=extractor,
+        )
+        indicators[result.key] = result.value
+        sources[result.key] = result.source
+        if result.error:
+            errors[result.key] = result.error
+
     # 兼容旧前端字段名：旧 turnover/turnoverYoY 输入框现在承载成交额动量。
     for legacy_key in ("turnover", "turnoverYoY"):
         indicators[legacy_key] = indicators["turnoverMomentum"]
@@ -549,6 +762,12 @@ def build_data(ak_module) -> dict:
     sources["growthPEPercentile"] = sources["growthValuationPercentile"]
     if "growthValuationPercentile" in errors:
         errors["growthPEPercentile"] = errors["growthValuationPercentile"]
+
+    indicators["marketSentimentScore"] = calculate_market_sentiment_score(
+        indicators["turnoverMomentum"],
+        indicators["erp"],
+    )
+    sources["marketSentimentScore"] = "calculated"
 
     # 尚未实现实时计算的因子保持默认值，但明确标注来源。
     manual_defaults = {}
