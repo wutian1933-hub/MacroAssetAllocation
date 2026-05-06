@@ -1,5 +1,5 @@
 {
-  "update_date": "2026-05-05",
+  "update_date": "2026-05-06",
   "indicators": {
     "pmi": 50.3,
     "socialFinance": -22.56,
@@ -11,7 +11,7 @@
     "erp": 49.1,
     "growthValueDispersion": 7.89,
     "growthValuationPercentile": 97.59,
-    "dividendYield": 4.79,
+    "dividendYield": 4.81,
     "commodityMomentum": -0.39,
     "turnover": 3.27,
     "turnoverYoY": 3.27,
@@ -29,7 +29,7 @@
     "growthValueDispersion": "akshare",
     "growthValuationPercentile": "akshare",
     "dividendYield": "akshare",
-    "commodityMomentum": "ccidx_fallback",
+    "commodityMomentum": "akshare",
     "turnover": "akshare",
     "turnoverYoY": "akshare",
     "growthPEPercentile": "akshare"
