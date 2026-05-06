@@ -23,6 +23,88 @@
         input:focus, select:focus {
             transition: all 0.2s ease;
         }
+
+        /* 因子说明悬浮提示 */
+        .factor-label {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+        }
+
+        .factor-help {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            flex: 0 0 auto;
+            width: 1rem;
+            height: 1rem;
+            border: 1px solid #c7d2fe;
+            border-radius: 9999px;
+            background: #eef2ff;
+            color: #4f46e5;
+            cursor: help;
+            font-size: 0.7rem;
+            font-weight: 700;
+            line-height: 1;
+            outline: none;
+            transition: all 0.2s ease;
+        }
+
+        .factor-help:hover,
+        .factor-help:focus {
+            border-color: #4f46e5;
+            background: #4f46e5;
+            color: #ffffff;
+        }
+
+        .factor-help::after {
+            content: attr(data-tooltip);
+            position: absolute;
+            top: calc(100% + 0.55rem);
+            left: 0;
+            z-index: 50;
+            width: min(18rem, calc(100vw - 2rem));
+            padding: 0.75rem 0.875rem;
+            border-radius: 0.75rem;
+            background: #111827;
+            box-shadow: 0 18px 35px rgba(17, 24, 39, 0.22);
+            color: #ffffff;
+            font-size: 0.75rem;
+            font-weight: 400;
+            line-height: 1.55;
+            text-align: left;
+            white-space: normal;
+            opacity: 0;
+            pointer-events: none;
+            transform: translateY(4px);
+            transition: opacity 0.18s ease, transform 0.18s ease;
+            visibility: hidden;
+        }
+
+        .factor-help::before {
+            content: "";
+            position: absolute;
+            top: calc(100% + 0.25rem);
+            left: 0.3rem;
+            z-index: 51;
+            border-right: 0.3rem solid transparent;
+            border-bottom: 0.3rem solid #111827;
+            border-left: 0.3rem solid transparent;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.18s ease;
+            visibility: hidden;
+        }
+
+        .factor-help:hover::after,
+        .factor-help:focus::after,
+        .factor-help:hover::before,
+        .factor-help:focus::before {
+            opacity: 1;
+            transform: translateY(0);
+            visibility: visible;
+        }
         
         /* 按钮悬停效果 */
         button:hover {
@@ -146,7 +228,7 @@
                                 <div class="space-y-3">
                                     <div>
                                         <div class="flex justify-between">
-                                            <label class="block text-sm font-medium text-gray-700 mb-1">制造业 PMI</label>
+                                            <label class="block text-sm font-medium text-gray-700 mb-1 factor-label"><span class="factor-help" tabindex="0" aria-label="制造业 PMI 说明" data-tooltip="制造业 PMI 衡量制造业景气度，50 为荣枯线；高于 50 代表扩张，低于 50 代表收缩，是经济增长维度的核心观察项。自动获取来自 AkShare macro_china_pmi。">?</span>制造业 PMI</label>
                                             <span class="text-xs text-gray-500">来源: AkShare</span>
                                         </div>
                                         <input type="number" id="pmi" step="0.1" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
@@ -154,15 +236,16 @@
                                     </div>
                                     <div>
                                         <div class="flex justify-between">
-                                            <label class="block text-sm font-medium text-gray-700 mb-1">社融存量同比增速 (%)</label>
+                                            <label class="block text-sm font-medium text-gray-700 mb-1 factor-label"><span class="factor-help" tabindex="0" aria-label="社融存量同比增速说明" data-tooltip="社融存量同比增速反映实体经济融资扩张速度；回升通常代表信用环境改善，下降代表融资需求或信用投放走弱。当前用 AkShare 社融增量 12 个月同比作为可自动计算代理。">?</span>社融存量同比增速 (%)</label>
                                             <span class="text-xs text-gray-500">来源: AkShare</span>
                                         </div>
                                         <input type="number" id="social-finance" step="0.1" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
                                         <div class="text-xs text-gray-500 mt-1">获取方法: ak.macro_china_shrzgm()</div>
                                     </div>
                                     <div>
-                                        <label class="block text-sm font-medium text-gray-700 mb-1">社融趋势</label>
+                                        <label class="block text-sm font-medium text-gray-700 mb-1 factor-label"><span class="factor-help" tabindex="0" aria-label="社融趋势说明" data-tooltip="自动判定社融增量 12 个月同比代理指标最近 3 个月方向：变动小于 0.5pct 判稳定；连续改善偏回升，连续走弱偏下降。用户仍可手动覆盖。">?</span>社融趋势</label>
                                         <select id="sf-trend" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                            <option value="stable">稳定</option>
                                             <option value="up">回升</option>
                                             <option value="down">下降</option>
                                         </select>
@@ -176,7 +259,7 @@
                                 <div class="space-y-3">
                                     <div>
                                         <div class="flex justify-between">
-                                            <label class="block text-sm font-medium text-gray-700 mb-1">CPI 同比 (%)</label>
+                                            <label class="block text-sm font-medium text-gray-700 mb-1 factor-label"><span class="factor-help" tabindex="0" aria-label="CPI 同比说明" data-tooltip="CPI 同比衡量居民消费价格变化，代表需求侧通胀压力；温和上行常见于复苏，过高则可能压缩政策宽松空间。自动获取来自 AkShare macro_china_cpi。">?</span>CPI 同比 (%)</label>
                                             <span class="text-xs text-gray-500">来源: AkShare</span>
                                         </div>
                                         <input type="number" id="cpi" step="0.1" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500">
@@ -184,15 +267,16 @@
                                     </div>
                                     <div>
                                         <div class="flex justify-between">
-                                            <label class="block text-sm font-medium text-gray-700 mb-1">PPI 同比 (%)</label>
+                                            <label class="block text-sm font-medium text-gray-700 mb-1 factor-label"><span class="factor-help" tabindex="0" aria-label="PPI 同比说明" data-tooltip="PPI 同比衡量工业品出厂价格变化，反映上游价格、库存周期和企业盈利压力；需结合 PPI 趋势判断通胀阶段。自动获取来自 AkShare macro_china_ppi。">?</span>PPI 同比 (%)</label>
                                             <span class="text-xs text-gray-500">来源: AkShare</span>
                                         </div>
                                         <input type="number" id="ppi" step="0.1" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500">
                                         <div class="text-xs text-gray-500 mt-1">获取方法: ak.macro_china_ppi()</div>
                                     </div>
                                     <div>
-                                        <label class="block text-sm font-medium text-gray-700 mb-1">PPI 趋势</label>
+                                        <label class="block text-sm font-medium text-gray-700 mb-1 factor-label"><span class="factor-help" tabindex="0" aria-label="PPI 趋势说明" data-tooltip="自动判定优先看 PPI 环比：连续 3 个月为正判上行，连续 3 个月为负判下行，近 3 个月均在 ±0.1% 附近判稳定；无环比时回退同比降幅收窄/扩大。用户仍可手动覆盖。">?</span>PPI 趋势</label>
                                         <select id="ppi-trend" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500">
+                                            <option value="stable">稳定</option>
                                             <option value="up">上行</option>
                                             <option value="down">下行</option>
                                         </select>
@@ -206,7 +290,7 @@
                                 <div class="space-y-3">
                                     <div>
                                         <div class="flex justify-between">
-                                            <label class="block text-sm font-medium text-gray-700 mb-1">M1-M2 剪刀差 (%)</label>
+                                            <label class="block text-sm font-medium text-gray-700 mb-1 factor-label"><span class="factor-help" tabindex="0" aria-label="M1-M2 剪刀差说明" data-tooltip="M1-M2 剪刀差反映活期资金相对定期资金的活跃度；差值走阔通常代表企业交易活跃度和风险偏好改善。自动获取来自 AkShare macro_china_money_supply。">?</span>M1-M2 剪刀差 (%)</label>
                                             <span class="text-xs text-gray-500">来源: AkShare</span>
                                         </div>
                                         <input type="number" id="m1m2" step="0.1" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500">
@@ -214,15 +298,16 @@
                                     </div>
                                     <div>
                                         <div class="flex justify-between">
-                                            <label class="block text-sm font-medium text-gray-700 mb-1">10 年期国债收益率 (%)</label>
+                                            <label class="block text-sm font-medium text-gray-700 mb-1 factor-label"><span class="factor-help" tabindex="0" aria-label="10 年期国债收益率说明" data-tooltip="10 年期国债收益率作为无风险利率代理；上行通常压制估值并代表流动性偏紧，下行通常支持权益估值。自动获取来自 AkShare bond_zh_us_rate。">?</span>10 年期国债收益率 (%)</label>
                                             <span class="text-xs text-gray-500">来源: AkShare</span>
                                         </div>
                                         <input type="number" id="bond-yield" step="0.01" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500">
                                         <div class="text-xs text-gray-500 mt-1">获取方法: ak.bond_zh_us_rate()</div>
                                     </div>
                                     <div>
-                                        <label class="block text-sm font-medium text-gray-700 mb-1">国债收益率趋势</label>
+                                        <label class="block text-sm font-medium text-gray-700 mb-1 factor-label"><span class="factor-help" tabindex="0" aria-label="国债收益率趋势说明" data-tooltip="自动判定最近 20 个交易日 10 年期国债收益率变化：上行达到 10bp 判上行，下行达到 15bp 判下行，其余判稳定。用户仍可手动覆盖。">?</span>国债收益率趋势</label>
                                         <select id="bond-trend" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500">
+                                            <option value="stable">稳定</option>
                                             <option value="up">上行</option>
                                             <option value="down">下行</option>
                                         </select>
@@ -232,11 +317,11 @@
 
                             <!-- 市场情绪维度 -->
                             <div class="border-l-4 border-red-500 pl-4">
-                                <h3 class="font-medium text-red-700 mb-2">市场情绪 (Sentiment)</h3>
+                                <h3 class="font-medium text-red-700 mb-2">市场情绪 (Sentiment)：成交额 + ERP 合成</h3>
                                 <div class="space-y-3">
                                     <div>
                                         <div class="flex justify-between">
-                                            <label id="turnover-momentum-label" class="block text-sm font-medium text-gray-700 mb-1">中证全指成交额滚动环比动量 (%)</label>
+                                            <label id="turnover-momentum-label" class="block text-sm font-medium text-gray-700 mb-1 factor-label"><span class="factor-help" tabindex="0" aria-label="中证全指成交额滚动环比动量说明" data-tooltip="该因子使用中证全指日频成交额，按 0.7×5 日滚动环比 + 0.3×20 日滚动环比合成，观察全市场交易活跃度的边际变化；不单独计入四维得分，而是与 ERP 合成为市场情绪分数。">?</span>中证全指成交额滚动环比动量 (%)</label>
                                             <span class="text-xs text-gray-500">来源: AkShare</span>
                                         </div>
                                         <input type="number" id="turnover" step="0.1" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500">
@@ -244,8 +329,8 @@
                                     </div>
                                     <div>
                                         <div class="flex justify-between">
-                                            <label class="block text-sm font-medium text-gray-700 mb-1">股债利差 (ERP) 分位数 (%)</label>
-                                            <span class="text-xs text-gray-500">来源: AkShare/中证商品指数 + 计算</span>
+                                            <label class="block text-sm font-medium text-gray-700 mb-1 factor-label"><span class="factor-help" tabindex="0" aria-label="股债利差 ERP 分位数说明" data-tooltip="ERP 使用中证全指滚动 PE 的盈利收益率减 10 年期国债收益率，再计算历史分位数；分位越高，股票相对债券越便宜、情绪越偏悲观。当前不单独计入四维得分，而是与成交额动量合成为市场情绪分数。">?</span>股债利差 (ERP) 分位数 (%)</label>
+                                            <span class="text-xs text-gray-500">来源: AkShare + 计算</span>
                                         </div>
                                         <input type="number" id="erp" step="1" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500">
                                         <div class="text-xs text-gray-500 mt-1">获取方法: 中证全指滚动PE + 10年期国债收益率构造日频ERP历史分位数</div>
@@ -259,15 +344,15 @@
                                 <div class="space-y-3">
                                     <div>
                                         <div class="flex justify-between">
-                                            <label class="block text-sm font-medium text-gray-700 mb-1">成长/价值分化度 (%)</label>
-                                            <span class="text-xs text-gray-500">来源: AkShare/中证商品指数 + 计算</span>
+                                            <label class="block text-sm font-medium text-gray-700 mb-1 factor-label"><span class="factor-help" tabindex="0" aria-label="成长/价值分化度说明" data-tooltip="成长/价值分化度使用中证800成长相对中证800价值的 20 日和 60 日超额收益加权计算；正值代表成长相对占优，仅微调股票内部成长/红利配置。">?</span>成长/价值分化度 (%)</label>
+                                            <span class="text-xs text-gray-500">来源: AkShare + 计算</span>
                                         </div>
                                         <input type="number" id="growth-value-dispersion" step="0.1" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500">
                                         <div class="text-xs text-gray-500 mt-1">获取方法: 中证800成长(H30355)与中证800价值(H30356)日频收盘价，0.4×20日超额收益 + 0.6×60日超额收益；仅微调成长/红利，不改变股债比例</div>
                                     </div>
                                     <div>
                                         <div class="flex justify-between">
-                                            <label class="block text-sm font-medium text-gray-700 mb-1">成长风格估值分位数 (%)</label>
+                                            <label class="block text-sm font-medium text-gray-700 mb-1 factor-label"><span class="factor-help" tabindex="0" aria-label="成长风格估值分位数说明" data-tooltip="成长风格估值分位数使用中证800成长日频滚动 PE 计算当前 PE 的历史位置；分位越低代表估值越便宜，成长 ETF 估值得分越高。">?</span>成长风格估值分位数 (%)</label>
                                             <span class="text-xs text-gray-500">来源: AkShare + 计算</span>
                                         </div>
                                         <input type="number" id="growth-valuation" step="1" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500">
@@ -275,7 +360,7 @@
                                     </div>
                                     <div>
                                         <div class="flex justify-between">
-                                            <label class="block text-sm font-medium text-gray-700 mb-1">红利风格股息率 (%)</label>
+                                            <label class="block text-sm font-medium text-gray-700 mb-1 factor-label"><span class="factor-help" tabindex="0" aria-label="红利风格股息率说明" data-tooltip="红利风格股息率取中证红利指数最新股息率，缺失时从股息率2回退到股息率1；数值越高，红利风格现金回报吸引力越强。">?</span>红利风格股息率 (%)</label>
                                             <span class="text-xs text-gray-500">来源: AkShare</span>
                                         </div>
                                         <input type="number" id="dividend-dy" step="0.01" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500">
@@ -283,8 +368,8 @@
                                     </div>
                                     <div>
                                         <div class="flex justify-between">
-                                            <label class="block text-sm font-medium text-gray-700 mb-1">商品价格动量 (%)</label>
-                                            <span class="text-xs text-gray-500">来源: AkShare + 计算</span>
+                                            <label class="block text-sm font-medium text-gray-700 mb-1 factor-label"><span class="factor-help" tabindex="0" aria-label="商品价格动量说明" data-tooltip="商品价格动量使用中证商品期货价格指数，按 0.4×20 日收益率 + 0.6×60 日收益率计算；替代多个商品 ETF 的单一代表性趋势口径。">?</span>商品价格动量 (%)</label>
+                                            <span class="text-xs text-gray-500">来源: AkShare/中证商品指数 + 计算</span>
                                         </div>
                                         <input type="number" id="commodity-momentum" step="0.01" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500">
                                         <div class="text-xs text-gray-500 mt-1">获取方法: 优先 AkShare futures_index_ccidx 获取中证商品期货价格指数日频收盘点位，失败时回退同源中证商品指数接口；0.4×20日收益率 + 0.6×60日收益率</div>
@@ -338,8 +423,15 @@
                                     <span id="liquidity-score" class="font-medium">0</span>
                                 </div>
                                 <div class="flex justify-between">
-                                    <span class="text-red-700">市场情绪 (S):</span>
+                                    <span class="text-red-700">市场情绪分数 (S):</span>
                                     <span id="sentiment-score" class="font-medium">0</span>
+                                </div>
+                                <div class="pt-3 mt-3 border-t border-gray-100 text-xs text-gray-500">
+                                    <div class="flex justify-between">
+                                        <span>动态维度权重:</span>
+                                        <span id="dimension-weight-summary" class="font-medium text-gray-600">--</span>
+                                    </div>
+                                    <div id="dimension-weight-note" class="mt-1">精确规则优先；未覆盖组合才用动态权重归类，不改变资产配置矩阵。</div>
                                 </div>
                             </div>
                         </div>
@@ -430,17 +522,19 @@
 
                 <!-- 多因子评分结果 -->
                 <div class="bg-white rounded-lg shadow-md p-6 mb-6">
-                    <h2 class="text-xl font-semibold text-gray-800 mb-4">多因子评分结果</h2>
+                    <h2 class="text-xl font-semibold text-gray-800 mb-2">ETF评分结果</h2>
+                    <p class="text-xs text-gray-500 mb-4">当前仅使用类别代表因子；缺失的 ETF 级动量/风险数据标注为中性占位，ETF 内部默认等权，不伪装成真实因子权重。</p>
                     <div class="overflow-x-auto">
                         <table class="min-w-full divide-y divide-gray-200">
                             <thead>
                                 <tr>
                                     <th class="px-4 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">标的代码</th>
                                     <th class="px-4 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">证券简称</th>
-                                    <th class="px-4 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">估值因子</th>
-                                    <th class="px-4 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">动量因子</th>
-                                    <th class="px-4 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">风险因子</th>
+                                    <th class="px-4 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">估值/收益</th>
+                                    <th class="px-4 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">动量/趋势</th>
+                                    <th class="px-4 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">风险/中性项</th>
                                     <th class="px-4 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">综合得分</th>
+                                    <th class="px-4 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">评分口径</th>
                                 </tr>
                             </thead>
                             <tbody id="factor-table" class="bg-white divide-y divide-gray-200">
