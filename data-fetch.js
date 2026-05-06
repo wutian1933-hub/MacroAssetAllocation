@@ -63,6 +63,34 @@ class MacroDataFetcher {
         }
         return value;
     }
+
+    calculateTurnoverSentimentContribution(turnoverMomentum) {
+        if (turnoverMomentum > 50) {
+            return 2;
+        }
+        if (turnoverMomentum > 0) {
+            return 1;
+        }
+        if (turnoverMomentum < -20) {
+            return -2;
+        }
+        return -1;
+    }
+
+    calculateErpSentimentContribution(erp) {
+        if (erp > 80) {
+            return -1;
+        }
+        if (erp < 20) {
+            return 1;
+        }
+        return 0;
+    }
+
+    calculateMarketSentimentScore(turnoverMomentum, erp) {
+        return this.calculateTurnoverSentimentContribution(turnoverMomentum)
+            + this.calculateErpSentimentContribution(erp);
+    }
     
     // 获取制造业PMI
     async getPMI() {
@@ -263,13 +291,17 @@ class MacroDataFetcher {
             const fallbackData = {
                 pmi: 51.2,
                 socialFinance: 9.8,
+                socialFinanceTrend: 'stable',
                 cpi: 2.1,
                 ppi: -0.5,
+                ppiTrend: 'stable',
                 m1m2: -1.2,
                 bondYield: 2.65,
+                bondYieldTrend: 'stable',
                 turnover: 15.3,
                 turnoverMomentum: 15.3,
                 erp: 65,
+                marketSentimentScore: this.calculateMarketSentimentScore(15.3, 65),
                 turnoverYoY: 15.3,
                 growthValueDispersion: 0,
                 growthValuationPercentile: 45,
@@ -292,10 +324,13 @@ class MacroDataFetcher {
         const sourceData = result.data;
         const pmiResult = this.getIndicatorResult(sourceData, ['pmi'], 51.2);
         const socialFinanceResult = this.getIndicatorResult(sourceData, ['socialFinance'], 9.8);
+        const socialFinanceTrendResult = this.getIndicatorResult(sourceData, ['socialFinanceTrend'], 'stable');
         const cpiResult = this.getIndicatorResult(sourceData, ['cpi'], 2.1);
         const ppiResult = this.getIndicatorResult(sourceData, ['ppi'], -0.5);
+        const ppiTrendResult = this.getIndicatorResult(sourceData, ['ppiTrend'], 'stable');
         const m1m2Result = this.getIndicatorResult(sourceData, ['m1m2'], -1.2);
         const bondYieldResult = this.getIndicatorResult(sourceData, ['bondYield'], 2.65);
+        const bondYieldTrendResult = this.getIndicatorResult(sourceData, ['bondYieldTrend'], 'stable');
         const turnoverMomentumResult = this.getIndicatorResult(sourceData, ['turnoverMomentum', 'turnover', 'turnoverYoY'], 15.3);
         const erpResult = this.getIndicatorResult(sourceData, ['erp'], 65);
         const growthValueDispersionResult = this.getIndicatorResult(sourceData, ['growthValueDispersion'], 0);
@@ -304,7 +339,23 @@ class MacroDataFetcher {
         const commodityMomentumResult = this.getIndicatorResult(sourceData, ['commodityMomentum'], 0);
 
         // 提取值并检查错误
-        const results = [pmiResult, socialFinanceResult, cpiResult, ppiResult, m1m2Result, bondYieldResult, turnoverMomentumResult, erpResult, growthValueDispersionResult, growthValuationPercentileResult, dividendYieldResult, commodityMomentumResult];
+        const results = [
+            pmiResult,
+            socialFinanceResult,
+            socialFinanceTrendResult,
+            cpiResult,
+            ppiResult,
+            ppiTrendResult,
+            m1m2Result,
+            bondYieldResult,
+            bondYieldTrendResult,
+            turnoverMomentumResult,
+            erpResult,
+            growthValueDispersionResult,
+            growthValuationPercentileResult,
+            dividendYieldResult,
+            commodityMomentumResult,
+        ];
         const errors = results
             .filter(result => typeof result === 'object' && result.error)
             .map(result => result.error);
@@ -317,12 +368,16 @@ class MacroDataFetcher {
         // 提取值
         const pmi = typeof pmiResult === 'object' ? pmiResult.value : pmiResult;
         const socialFinance = typeof socialFinanceResult === 'object' ? socialFinanceResult.value : socialFinanceResult;
+        const socialFinanceTrend = typeof socialFinanceTrendResult === 'object' ? socialFinanceTrendResult.value : socialFinanceTrendResult;
         const cpi = typeof cpiResult === 'object' ? cpiResult.value : cpiResult;
         const ppi = typeof ppiResult === 'object' ? ppiResult.value : ppiResult;
+        const ppiTrend = typeof ppiTrendResult === 'object' ? ppiTrendResult.value : ppiTrendResult;
         const m1m2 = typeof m1m2Result === 'object' ? m1m2Result.value : m1m2Result;
         const bondYield = typeof bondYieldResult === 'object' ? bondYieldResult.value : bondYieldResult;
+        const bondYieldTrend = typeof bondYieldTrendResult === 'object' ? bondYieldTrendResult.value : bondYieldTrendResult;
         const turnoverMomentum = typeof turnoverMomentumResult === 'object' ? turnoverMomentumResult.value : turnoverMomentumResult;
         const erp = typeof erpResult === 'object' ? erpResult.value : erpResult;
+        const marketSentimentScore = this.calculateMarketSentimentScore(turnoverMomentum, erp);
         const growthValueDispersion = typeof growthValueDispersionResult === 'object' ? growthValueDispersionResult.value : growthValueDispersionResult;
         const growthValuationPercentile = typeof growthValuationPercentileResult === 'object' ? growthValuationPercentileResult.value : growthValuationPercentileResult;
         const dividendYield = typeof dividendYieldResult === 'object' ? dividendYieldResult.value : dividendYieldResult;
@@ -331,13 +386,17 @@ class MacroDataFetcher {
         const data = {
             pmi,
             socialFinance,
+            socialFinanceTrend,
             cpi,
             ppi,
+            ppiTrend,
             m1m2,
             bondYield,
+            bondYieldTrend,
             turnover: turnoverMomentum,
             turnoverMomentum,
             erp,
+            marketSentimentScore,
             turnoverYoY: turnoverMomentum,
             growthValueDispersion,
             growthValuationPercentile,
