@@ -115,6 +115,443 @@ const etfPool = {
     ]
 };
 
+// 因子注册表：集中定义每个因子的唯一主用途，后续去重和动态权重都以此为准。
+const factorRegistry = {
+    pmi: {
+        id: 'pmi',
+        label: '制造业 PMI',
+        dataKeys: ['pmi'],
+        inputId: 'pmi',
+        layer: 'macro_cycle',
+        dimension: 'growth',
+        primaryUse: 'growth_score',
+        role: 'score_input',
+        currentDimensionWeight: 0.5,
+        overlapGroup: null,
+    },
+    socialFinance: {
+        id: 'socialFinance',
+        label: '社融存量同比增速代理',
+        dataKeys: ['socialFinance'],
+        inputId: 'social-finance',
+        layer: 'raw_data',
+        dimension: 'growth',
+        primaryUse: 'derive_social_finance_trend',
+        role: 'derived_source',
+        derivedFor: ['socialFinanceTrend'],
+        currentDimensionWeight: 0,
+        overlapGroup: 'credit',
+    },
+    socialFinanceTrend: {
+        id: 'socialFinanceTrend',
+        label: '社融趋势',
+        dataKeys: ['socialFinanceTrend'],
+        inputId: 'sf-trend',
+        layer: 'macro_cycle',
+        dimension: 'growth',
+        primaryUse: 'growth_score',
+        role: 'score_input',
+        currentDimensionWeight: 0.5,
+        dependsOn: ['socialFinance'],
+        overlapGroup: 'credit',
+    },
+    cpi: {
+        id: 'cpi',
+        label: 'CPI 同比',
+        dataKeys: ['cpi'],
+        inputId: 'cpi',
+        layer: 'macro_cycle',
+        dimension: 'inflation',
+        primaryUse: 'inflation_score',
+        role: 'score_input',
+        currentDimensionWeight: 0.4,
+        overlapGroup: null,
+    },
+    ppi: {
+        id: 'ppi',
+        label: 'PPI 同比',
+        dataKeys: ['ppi'],
+        inputId: 'ppi',
+        layer: 'raw_data',
+        dimension: 'inflation',
+        primaryUse: 'derive_ppi_trend',
+        role: 'derived_source',
+        derivedFor: ['ppiTrend'],
+        currentDimensionWeight: 0,
+        overlapGroup: 'industrial_inflation',
+    },
+    ppiTrend: {
+        id: 'ppiTrend',
+        label: 'PPI 趋势',
+        dataKeys: ['ppiTrend'],
+        inputId: 'ppi-trend',
+        layer: 'macro_cycle',
+        dimension: 'inflation',
+        primaryUse: 'inflation_score',
+        role: 'score_input',
+        currentDimensionWeight: 0.6,
+        dependsOn: ['ppi'],
+        overlapGroup: 'industrial_inflation',
+    },
+    m1m2: {
+        id: 'm1m2',
+        label: 'M1-M2 剪刀差',
+        dataKeys: ['m1m2'],
+        inputId: 'm1m2',
+        layer: 'macro_cycle',
+        dimension: 'liquidity',
+        primaryUse: 'liquidity_score',
+        role: 'score_input',
+        currentDimensionWeight: 0.6,
+        overlapGroup: 'money_supply',
+    },
+    bondYield: {
+        id: 'bondYield',
+        label: '10 年期国债收益率',
+        dataKeys: ['bondYield'],
+        inputId: 'bond-yield',
+        layer: 'raw_data',
+        dimension: 'liquidity',
+        primaryUse: 'derive_bond_yield_trend_and_erp',
+        role: 'derived_source',
+        derivedFor: ['bondYieldTrend', 'erp'],
+        currentDimensionWeight: 0,
+        overlapGroup: 'interest_rate',
+    },
+    bondYieldTrend: {
+        id: 'bondYieldTrend',
+        label: '国债收益率趋势',
+        dataKeys: ['bondYieldTrend'],
+        inputId: 'bond-trend',
+        layer: 'macro_cycle',
+        dimension: 'liquidity',
+        primaryUse: 'liquidity_score',
+        role: 'score_input',
+        currentDimensionWeight: 0.4,
+        dependsOn: ['bondYield'],
+        overlapGroup: 'interest_rate',
+    },
+    turnoverMomentum: {
+        id: 'turnoverMomentum',
+        label: '中证全指成交额滚动环比动量',
+        dataKeys: ['turnoverMomentum', 'turnover', 'turnoverYoY'],
+        inputId: 'turnover',
+        layer: 'raw_data',
+        dimension: 'sentiment',
+        primaryUse: 'derive_market_sentiment_score',
+        role: 'derived_source',
+        derivedFor: ['marketSentimentScore'],
+        currentDimensionWeight: 0,
+        overlapGroup: 'market_sentiment',
+    },
+    erp: {
+        id: 'erp',
+        label: '股债利差 ERP 分位数',
+        dataKeys: ['erp'],
+        inputId: 'erp',
+        layer: 'raw_data',
+        dimension: 'sentiment',
+        primaryUse: 'derive_market_sentiment_score',
+        role: 'derived_source',
+        derivedFor: ['marketSentimentScore'],
+        currentDimensionWeight: 0,
+        dependsOn: ['bondYield'],
+        overlapGroup: 'interest_rate',
+        overlapNote: '与国债收益率趋势共享利率底层数据，但只作为市场情绪分数的风险溢价输入。',
+    },
+    marketSentimentScore: {
+        id: 'marketSentimentScore',
+        label: '市场情绪分数',
+        dataKeys: ['marketSentimentScore'],
+        layer: 'macro_cycle',
+        dimension: 'sentiment',
+        primaryUse: 'sentiment_score',
+        role: 'score_input',
+        dependsOn: ['turnoverMomentum', 'erp'],
+        currentDimensionWeight: 1,
+        overlapGroup: 'market_sentiment',
+    },
+    growthValueDispersion: {
+        id: 'growthValueDispersion',
+        label: '成长/价值分化度',
+        dataKeys: ['growthValueDispersion'],
+        inputId: 'growth-value-dispersion',
+        layer: 'tactical_adjustment',
+        dimension: 'equity_style',
+        primaryUse: 'equity_internal_tilt',
+        role: 'tactical_input',
+        currentDimensionWeight: null,
+        overlapGroup: 'equity_style',
+    },
+    growthValuationPercentile: {
+        id: 'growthValuationPercentile',
+        label: '成长风格估值分位数',
+        dataKeys: ['growthValuationPercentile', 'growthPEPercentile'],
+        inputId: 'growth-valuation',
+        layer: 'etf_selection',
+        dimension: 'growth_etf',
+        primaryUse: 'growth_etf_score',
+        role: 'selection_input',
+        currentDimensionWeight: 0.35,
+        overlapGroup: 'equity_style',
+    },
+    dividendYield: {
+        id: 'dividendYield',
+        label: '红利风格股息率',
+        dataKeys: ['dividendYield'],
+        inputId: 'dividend-dy',
+        layer: 'etf_selection',
+        dimension: 'dividend_etf',
+        primaryUse: 'dividend_etf_score',
+        role: 'selection_input',
+        currentDimensionWeight: 0.5,
+        overlapGroup: 'equity_style',
+    },
+    commodityMomentum: {
+        id: 'commodityMomentum',
+        label: '商品价格动量',
+        dataKeys: ['commodityMomentum'],
+        inputId: 'commodity-momentum',
+        layer: 'etf_selection',
+        dimension: 'commodity_etf',
+        primaryUse: 'commodity_etf_score',
+        role: 'selection_input',
+        currentDimensionWeight: 0.5,
+        overlapGroup: 'commodity_trend',
+        overlapNote: '当前代表商品整体趋势，暂不区分黄金、原油、有色内部相对强弱。',
+    },
+};
+
+const factorDimensionRegistry = {
+    growth: ['pmi', 'socialFinanceTrend'],
+    inflation: ['cpi', 'ppiTrend'],
+    liquidity: ['m1m2', 'bondYieldTrend'],
+    sentiment: ['marketSentimentScore'],
+    equityStyle: ['growthValueDispersion'],
+    growthEtf: ['growthValuationPercentile'],
+    dividendEtf: ['dividendYield'],
+    commodityEtf: ['commodityMomentum'],
+};
+
+const factorOverlapRegistry = {
+    credit: {
+        factors: ['socialFinance', 'socialFinanceTrend'],
+        handling: '社融数值仅作为趋势计算底层数据，不直接参与宏观打分。',
+    },
+    industrial_inflation: {
+        factors: ['ppi', 'ppiTrend'],
+        handling: 'PPI 同比用于展示和趋势回退，PPI 趋势参与通胀维度打分。',
+    },
+    interest_rate: {
+        factors: ['bondYield', 'bondYieldTrend', 'erp'],
+        handling: '10Y 国债收益率仅作底层数据；趋势进入流动性维度，ERP 进入市场情绪分数。',
+    },
+    market_sentiment: {
+        factors: ['turnoverMomentum', 'erp', 'marketSentimentScore'],
+        handling: '成交额动量和 ERP 合成为单一市场情绪分数，只以合成结果参与四维阶段判定。',
+    },
+    equity_style: {
+        factors: ['growthValueDispersion', 'growthValuationPercentile', 'dividendYield'],
+        handling: '风格分化只调股票内部结构；成长估值和红利股息率只用于对应 ETF 内部选择。',
+    },
+    commodity_trend: {
+        factors: ['commodityMomentum'],
+        handling: '商品动量代表商品整体趋势，当前不作为商品 ETF 内部分化依据。',
+    },
+};
+
+const stageSignalRules = [
+    { key: '0,0,1,0', stage: 1, label: '复苏初期' },
+    { key: '0,0,1,1', stage: 2, label: '复苏中期' },
+    { key: '1,0,1,1', stage: 2, label: '复苏中期' },
+    { key: '1,0,0,1', stage: 3, label: '复苏后期' },
+    { key: '1,1,0,1', stage: 3, label: '复苏后期' },
+    { key: '1,1,0,0', stage: 4, label: '过热初期' },
+    { key: '0,1,0,0', stage: 5, label: '过热后期' },
+    { key: '0,0,0,0', stage: 6, label: '衰退初期' },
+];
+
+function validateStageSignalRules(rules = stageSignalRules) {
+    const errors = [];
+    const keys = new Set();
+    rules.forEach((rule, index) => {
+        if (!rule.key) {
+            errors.push(`第 ${index + 1} 条阶段规则缺少 key`);
+        } else if (keys.has(rule.key)) {
+            errors.push(`${rule.key}: 阶段规则 key 重复`);
+        }
+        keys.add(rule.key);
+
+        if (!Number.isInteger(rule.stage) || rule.stage < 1 || rule.stage > 6) {
+            errors.push(`${rule.key || `第 ${index + 1} 条`}: 阶段编号无效`);
+        }
+    });
+    return errors;
+}
+
+function createStageSignalMap(rules = stageSignalRules) {
+    const errors = validateStageSignalRules(rules);
+    if (errors.length > 0) {
+        throw new Error(`阶段判定规则无效: ${errors.join('; ')}`);
+    }
+
+    return rules.reduce((map, rule) => {
+        map[rule.key] = rule.stage;
+        return map;
+    }, {});
+}
+
+const stageSignalMap = createStageSignalMap();
+const dimensionKeys = ['growth', 'inflation', 'liquidity', 'sentiment'];
+const neutralDimensionWeights = {
+    growth: 0.25,
+    inflation: 0.25,
+    liquidity: 0.25,
+    sentiment: 0.25,
+};
+const dynamicDimensionWeightRules = {
+    1: {
+        label: '底部确认期：流动性优先',
+        weights: { growth: 0.25, inflation: 0.15, liquidity: 0.4, sentiment: 0.2 },
+    },
+    2: {
+        label: '复苏验证期：增长优先',
+        weights: { growth: 0.35, inflation: 0.15, liquidity: 0.3, sentiment: 0.2 },
+    },
+    3: {
+        label: '扩张确认期：通胀与增长并重',
+        weights: { growth: 0.25, inflation: 0.3, liquidity: 0.25, sentiment: 0.2 },
+    },
+    4: {
+        label: '过热确认期：通胀优先',
+        weights: { growth: 0.2, inflation: 0.35, liquidity: 0.25, sentiment: 0.2 },
+    },
+    5: {
+        label: '顶部预警期：通胀与情绪优先',
+        weights: { growth: 0.15, inflation: 0.35, liquidity: 0.2, sentiment: 0.3 },
+    },
+    6: {
+        label: '衰退观察期：流动性与情绪优先',
+        weights: { growth: 0.25, inflation: 0.15, liquidity: 0.35, sentiment: 0.25 },
+    },
+};
+const stagePrototypeSignals = {
+    1: { growth: 0, inflation: 0, liquidity: 1, sentiment: 0 },
+    2: { growth: 1, inflation: 0, liquidity: 1, sentiment: 1 },
+    3: { growth: 1, inflation: 1, liquidity: 1, sentiment: 1 },
+    4: { growth: 1, inflation: 1, liquidity: 0, sentiment: 0 },
+    5: { growth: 0, inflation: 1, liquidity: 0, sentiment: 0 },
+    6: { growth: 0, inflation: 0, liquidity: 0, sentiment: 0 },
+};
+
+function validateDynamicDimensionWeightRules(rules = dynamicDimensionWeightRules) {
+    const errors = [];
+    Object.entries(rules).forEach(([stage, config]) => {
+        if (!stageDescriptions[stage]) {
+            errors.push(`${stage}: 未定义阶段描述`);
+        }
+        if (!config.label) {
+            errors.push(`${stage}: 缺少动态权重说明`);
+        }
+        const weights = config.weights || {};
+        dimensionKeys.forEach(dimension => {
+            if (typeof weights[dimension] !== 'number' || weights[dimension] <= 0) {
+                errors.push(`${stage}: ${dimension} 权重无效`);
+            }
+        });
+        const totalWeight = dimensionKeys.reduce((sum, dimension) => sum + (weights[dimension] || 0), 0);
+        if (Math.abs(totalWeight - 1) > 0.0001) {
+            errors.push(`${stage}: 权重合计必须为 1`);
+        }
+    });
+    return errors;
+}
+
+function getDynamicDimensionWeights(stage) {
+    return dynamicDimensionWeightRules[stage]?.weights || neutralDimensionWeights;
+}
+
+function getDynamicDimensionWeightLabel(stage) {
+    return dynamicDimensionWeightRules[stage]?.label || '默认等权';
+}
+
+function getFactorRegistry() {
+    return factorRegistry;
+}
+
+function getFactorDimensionRegistry() {
+    return factorDimensionRegistry;
+}
+
+function getFactorOverlapRegistry() {
+    return factorOverlapRegistry;
+}
+
+function getScoringFactors() {
+    return Object.values(factorRegistry).filter(factor => factor.role === 'score_input');
+}
+
+function getStageSignalRules() {
+    return stageSignalRules;
+}
+
+function validateFactorRegistry(registry = factorRegistry) {
+    const errors = [];
+    const ids = new Set();
+    Object.entries(registry).forEach(([key, factor]) => {
+        if (factor.id !== key) {
+            errors.push(`${key}: id 与注册表键不一致`);
+        }
+        if (ids.has(factor.id)) {
+            errors.push(`${key}: id 重复`);
+        }
+        ids.add(factor.id);
+        ['label', 'layer', 'dimension', 'primaryUse', 'role'].forEach(field => {
+            if (!factor[field]) {
+                errors.push(`${key}: 缺少 ${field}`);
+            }
+        });
+        if (!Array.isArray(factor.dataKeys) || factor.dataKeys.length === 0) {
+            errors.push(`${key}: 缺少 dataKeys`);
+        }
+        if (factor.dependsOn) {
+            factor.dependsOn.forEach(dependency => {
+                if (!registry[dependency]) {
+                    errors.push(`${key}: dependsOn 未注册 ${dependency}`);
+                }
+            });
+        }
+        if (factor.derivedFor) {
+            factor.derivedFor.forEach(derivedFactor => {
+                if (!registry[derivedFactor]) {
+                    errors.push(`${key}: derivedFor 未注册 ${derivedFactor}`);
+                }
+            });
+        }
+    });
+
+    Object.entries(factorDimensionRegistry).forEach(([dimension, factorIds]) => {
+        factorIds.forEach(factorId => {
+            if (!registry[factorId]) {
+                errors.push(`${dimension}: 维度引用未注册因子 ${factorId}`);
+            }
+        });
+    });
+
+    Object.entries(factorOverlapRegistry).forEach(([group, config]) => {
+        if (!config.handling) {
+            errors.push(`${group}: 缺少重叠处理说明`);
+        }
+        config.factors.forEach(factorId => {
+            if (!registry[factorId]) {
+                errors.push(`${group}: 重叠组引用未注册因子 ${factorId}`);
+            }
+        });
+    });
+
+    return errors;
+}
+
 // DOM元素
 let calculateBtn, historyTable, etfTable, factorTable;
 
@@ -128,6 +565,20 @@ function hasMetricValue(value) {
 function setMetricInput(id, value) {
     if (hasMetricValue(value)) {
         document.getElementById(id).value = value;
+    }
+}
+
+function setSelectValue(id, value) {
+    if (!hasMetricValue(value)) {
+        return;
+    }
+    const select = document.getElementById(id);
+    if (!select) {
+        return;
+    }
+    const normalizedValue = String(value);
+    if (Array.from(select.options).some(option => option.value === normalizedValue)) {
+        select.value = normalizedValue;
     }
 }
 
@@ -145,6 +596,23 @@ function formatFetchNotes(notes) {
     return `自动数据获取成功。\n以下因子暂未自动化，已保留默认/手动值：\n${notes.map(note => `- ${note}`).join('\n')}`;
 }
 
+function setFactorLabelText(label, text) {
+    const helpIcon = label.querySelector?.('.factor-help');
+    if (!helpIcon) {
+        label.textContent = text;
+        return;
+    }
+
+    const textNode = Array.from(label.childNodes || [])
+        .find(node => node.nodeType === 3 && node.textContent.trim());
+    if (textNode) {
+        textNode.textContent = text;
+        return;
+    }
+
+    label.appendChild(document.createTextNode(text));
+}
+
 function updateTurnoverMomentumCopy() {
     const label = document.getElementById('turnover-momentum-label')
         || document.querySelector('#turnover')?.parentElement?.querySelector('label');
@@ -152,7 +620,7 @@ function updateTurnoverMomentumCopy() {
         || document.querySelector('#turnover')?.parentElement?.querySelector('.text-xs.text-gray-500.mt-1');
 
     if (label) {
-        label.textContent = '中证全指成交额滚动环比动量 (%)';
+        setFactorLabelText(label, '中证全指成交额滚动环比动量 (%)');
     }
     if (method) {
         method.textContent = '获取方法: ak.stock_zh_index_hist_csindex("000985")，0.7×5日滚动环比 + 0.3×20日滚动环比';
@@ -219,10 +687,13 @@ async function autoFetchData() {
         // 填充数据到输入字段
         setMetricInput('pmi', data.pmi);
         setMetricInput('social-finance', data.socialFinance);
+        setSelectValue('sf-trend', data.socialFinanceTrend);
         setMetricInput('cpi', data.cpi);
         setMetricInput('ppi', data.ppi);
+        setSelectValue('ppi-trend', data.ppiTrend);
         setMetricInput('m1m2', data.m1m2);
         setMetricInput('bond-yield', data.bondYield);
+        setSelectValue('bond-trend', data.bondYieldTrend);
         setMetricInput('turnover', data.turnoverMomentum ?? data.turnover ?? data.turnoverYoY);
         setMetricInput('erp', data.erp);
 
@@ -361,21 +832,31 @@ function calculateAllocation() {
     const growthScore = calculateGrowthScore(pmi, sfTrend);
     const inflationScore = calculateInflationScore(cpi, ppi, ppiTrend);
     const liquidityScore = calculateLiquidityScore(m1m2, bondTrend);
-    const sentimentScore = calculateSentimentScore(turnoverMomentum, erp);
-    
+    const marketSentiment = getMarketSentimentState(turnoverMomentum, erp);
+    const sentimentScore = marketSentiment.score;
+    const stageDecision = getStageDecisionState(
+        growthScore,
+        inflationScore,
+        liquidityScore,
+        sentimentScore,
+        turnoverMomentum,
+        erp,
+    );
+
     // 显示得分
     document.getElementById('growth-score').textContent = growthScore;
     document.getElementById('inflation-score').textContent = inflationScore;
     document.getElementById('liquidity-score').textContent = liquidityScore;
     document.getElementById('sentiment-score').textContent = sentimentScore;
-    
+    updateDimensionWeightDisplay(stageDecision);
+
     // 判定宏观阶段
-    const stage = determineStage(growthScore, inflationScore, liquidityScore, sentimentScore, turnoverMomentum, erp);
-    
+    const stage = stageDecision.stage;
+
     // 显示阶段信息
     document.getElementById('stage-result').textContent = stageDescriptions[stage].name;
     document.getElementById('stage-desc').textContent = stageDescriptions[stage].desc;
-    
+
     // 计算资产配置
     const allocation = calculateAssetAllocation(stage, turnoverMomentum, erp, growthValueDispersion);
     
@@ -414,6 +895,8 @@ function calculateGrowthScore(pmi, sfTrend) {
     }
     if (sfTrend === 'up') {
         score += 1;
+    } else if (sfTrend === 'down') {
+        score -= 1;
     }
     return score;
 }
@@ -428,7 +911,7 @@ function calculateInflationScore(cpi, ppi, ppiTrend) {
     }
     if (ppiTrend === 'up') {
         score += 1;
-    } else {
+    } else if (ppiTrend === 'down') {
         score -= 1;
     }
     return score;
@@ -444,80 +927,209 @@ function calculateLiquidityScore(m1m2, bondTrend) {
     }
     if (bondTrend === 'down') {
         score += 1;
-    } else {
+    } else if (bondTrend === 'up') {
         score -= 1;
     }
     return score;
 }
-
-// 计算市场情绪得分
-function calculateSentimentScore(turnoverMomentum, erp) {
-    let score = 0;
+function calculateTurnoverSentimentContribution(turnoverMomentum) {
     if (turnoverMomentum > 50) {
-        score += 2;
-    } else if (turnoverMomentum > 0) {
-        score += 1;
-    } else if (turnoverMomentum < -20) {
-        score -= 2;
-    } else {
-        score -= 1;
+        return 2;
     }
+    if (turnoverMomentum > 0) {
+        return 1;
+    }
+    if (turnoverMomentum < -20) {
+        return -2;
+    }
+    return -1;
+}
+
+function calculateErpSentimentContribution(erp) {
     if (erp > 80) {
-        score -= 1;
-    } else if (erp < 20) {
-        score += 1;
+        return -1;
     }
-    return score;
+    if (erp < 20) {
+        return 1;
+    }
+    return 0;
+}
+
+// 计算市场情绪分数：成交额动量 + ERP 风险溢价逆向信号
+function calculateMarketSentimentScore(turnoverMomentum, erp) {
+    return calculateTurnoverSentimentContribution(turnoverMomentum)
+        + calculateErpSentimentContribution(erp);
+}
+
+function getMarketSentimentState(turnoverMomentum, erp) {
+    const turnoverContribution = calculateTurnoverSentimentContribution(turnoverMomentum);
+    const erpContribution = calculateErpSentimentContribution(erp);
+    const score = turnoverContribution + erpContribution;
+
+    return {
+        score,
+        turnoverContribution,
+        erpContribution,
+        isOverheated: turnoverContribution >= 2 && score > 0,
+        isIcePoint: score <= -3,
+    };
+}
+
+// 兼容旧函数名，内部已改为单一市场情绪分数
+function calculateSentimentScore(turnoverMomentum, erp) {
+    return calculateMarketSentimentScore(turnoverMomentum, erp);
+}
+
+function getDimensionSignals(growthScore, inflationScore, liquidityScore, sentimentScore) {
+    return {
+        growth: growthScore > 0 ? 1 : 0,
+        inflation: inflationScore > 0 ? 1 : 0,
+        liquidity: liquidityScore > 0 ? 1 : 0,
+        sentiment: sentimentScore > 0 ? 1 : 0,
+    };
+}
+
+function getDimensionSignalKey(signals) {
+    return [
+        signals.growth,
+        signals.inflation,
+        signals.liquidity,
+        signals.sentiment,
+    ].join(',');
+}
+
+function scoreStagePrototype(signals, prototype, weights) {
+    return dimensionKeys.reduce((score, dimension) => (
+        score + (signals[dimension] === prototype[dimension] ? weights[dimension] : 0)
+    ), 0);
+}
+
+function selectClosestStageByWeights(signals, weights, preferredStage = 2) {
+    return Object.entries(stagePrototypeSignals)
+        .map(([stage, prototype]) => ({
+            stage: Number(stage),
+            confidence: scoreStagePrototype(signals, prototype, weights),
+        }))
+        .sort((left, right) => (
+            right.confidence - left.confidence
+            || Math.abs(left.stage - preferredStage) - Math.abs(right.stage - preferredStage)
+            || left.stage - right.stage
+        ))[0];
+}
+
+function getStageDecisionState(growthScore, inflationScore, liquidityScore, sentimentScore, turnoverMomentum, erp) {
+    const signals = getDimensionSignals(growthScore, inflationScore, liquidityScore, sentimentScore);
+    const key = getDimensionSignalKey(signals);
+    const sentimentState = getMarketSentimentState(turnoverMomentum, erp);
+
+    if (sentimentState.isOverheated) {
+        return {
+            stage: 4,
+            baseStage: 4,
+            method: 'sentiment_overheated',
+            key,
+            signals,
+            weights: getDynamicDimensionWeights(4),
+            weightLabel: getDynamicDimensionWeightLabel(4),
+            confidence: 1,
+        };
+    }
+
+    if (sentimentState.isIcePoint) {
+        return {
+            stage: 6,
+            baseStage: 6,
+            method: 'sentiment_ice_point',
+            key,
+            signals,
+            weights: getDynamicDimensionWeights(6),
+            weightLabel: getDynamicDimensionWeightLabel(6),
+            confidence: 1,
+        };
+    }
+
+    const exactStage = stageSignalMap[key];
+    if (exactStage !== undefined) {
+        return {
+            stage: exactStage,
+            baseStage: exactStage,
+            method: 'exact',
+            key,
+            signals,
+            weights: getDynamicDimensionWeights(exactStage),
+            weightLabel: getDynamicDimensionWeightLabel(exactStage),
+            confidence: 1,
+        };
+    }
+
+    const baseMatch = selectClosestStageByWeights(signals, neutralDimensionWeights);
+    const weights = getDynamicDimensionWeights(baseMatch.stage);
+    const dynamicMatch = selectClosestStageByWeights(signals, weights, baseMatch.stage);
+
+    return {
+        stage: dynamicMatch.stage,
+        baseStage: baseMatch.stage,
+        method: 'dynamic_weighted',
+        key,
+        signals,
+        weights,
+        weightLabel: getDynamicDimensionWeightLabel(baseMatch.stage),
+        confidence: Number(dynamicMatch.confidence.toFixed(2)),
+    };
+}
+
+function formatDimensionWeights(weights) {
+    return [
+        `G ${Math.round(weights.growth * 100)}%`,
+        `I ${Math.round(weights.inflation * 100)}%`,
+        `L ${Math.round(weights.liquidity * 100)}%`,
+        `S ${Math.round(weights.sentiment * 100)}%`,
+    ].join(' / ');
+}
+
+function updateDimensionWeightDisplay(stageDecision) {
+    const summary = document.getElementById('dimension-weight-summary');
+    const note = document.getElementById('dimension-weight-note');
+    if (summary) {
+        summary.textContent = formatDimensionWeights(stageDecision.weights);
+    }
+    if (note) {
+        const methodText = stageDecision.method === 'dynamic_weighted'
+            ? `未命中精确规则，按动态权重归类为阶段 ${stageDecision.stage}`
+            : `精确/保护规则命中阶段 ${stageDecision.stage}`;
+        note.textContent = `${stageDecision.weightLabel}；${methodText}；资产配置矩阵保持不变。`;
+    }
 }
 
 // 判定宏观阶段
 function determineStage(growthScore, inflationScore, liquidityScore, sentimentScore, turnoverMomentum, erp) {
-    // 新的四维得分计算（0或1）
-    const G = growthScore > 0 ? 1 : 0;
-    const I = inflationScore > 0 ? 1 : 0;
-    const L = liquidityScore > 0 ? 1 : 0;
-    const S = sentimentScore > 0 ? 1 : 0;
-    
-    // 情绪过热保护：中证全指成交额动量显著升温
-    if (turnoverMomentum > 50 && S === 1) {
-        return 4; // 过热初期
-    }
-
-    // 情绪冰点保护：成交额动量快速降温且股票相对债券极便宜
-    if (turnoverMomentum < -20 && erp > 80) {
-        return 6; // 衰退初期
-    }
-    
-    // 基于四维得分判定阶段（新规则）
-    const stageMap = {
-        '0,0,1,0': 1, // 复苏初期
-        '0,0,1,1': 2, // 复苏中期
-        '1,0,0,1': 3, // 复苏后期
-        '1,1,0,0': 4, // 过热初期
-        '1,1,0,0': 5, // 过热后期（需额外判断）
-        '0,0,1,0': 6  // 衰退初期（需额外判断）
-    };
-    
-    const key = `${G},${I},${L},${S}`;
-    return stageMap[key] || 2; // 默认返回复苏中期
+    return getStageDecisionState(
+        growthScore,
+        inflationScore,
+        liquidityScore,
+        sentimentScore,
+        turnoverMomentum,
+        erp,
+    ).stage;
 }
 
 // 计算资产配置
 function calculateAssetAllocation(stage, turnoverMomentum, erp, growthValueDispersion = 0) {
     let allocation = { ...allocationMatrix[stage] };
-    
+    const sentimentState = getMarketSentimentState(turnoverMomentum, erp);
+
     // 双封顶约束
     allocation.dividend = Math.min(allocation.dividend, 30); // 红利≤30%
     allocation.commodity = Math.min(allocation.commodity, 20); // 商品≤20%
     
     // 情绪过热保护
-    if (turnoverMomentum > 50) {
+    if (sentimentState.isOverheated) {
         allocation.total = Math.min(allocation.total, 60);
         allocation.bond = Math.max(allocation.bond, 40);
     }
 
     // 情绪冰点保护
-    if (turnoverMomentum < -20 && erp > 80) {
+    if (sentimentState.isIcePoint) {
         allocation.growth = Math.max(allocation.growth, 15);
     }
 
@@ -564,73 +1176,67 @@ function updateChart(allocation) {
 }
 
 // 计算ETF标的因子得分
+const neutralFactorDisplay = '中性 0.50';
+
+function clampScore(value) {
+    return Math.max(0, Math.min(1, value));
+}
+
+function formatFactorScore(value) {
+    return value.toFixed(2);
+}
+
 function calculateEtfScores(growthValuationPercentile, dividendDy, commodityMomentum) {
     const scores = {};
-    
+
     // 成长股因子得分
     const growthEtfs = [...etfPool.growth.wide, ...etfPool.growth.tech, ...etfPool.growth.cross];
     growthEtfs.forEach(etf => {
-        // 估值因子：成长风格估值分位数越低，得分越高
-        const valuation = 1 - (growthValuationPercentile / 100);
-        // 动量因子：假设为0.5（实际应根据20日收益率计算）
-        const momentum = 0.5;
-        // 风险因子：假设为0.5（实际应根据波动率计算）
-        const risk = 0.5;
-        // 综合得分
-        const score = 0.35 * valuation + 0.45 * momentum + 0.20 * risk;
+        const valuation = clampScore(1 - (growthValuationPercentile / 100));
         scores[etf.code] = {
             name: etf.name,
             category: etf.category,
-            valuation: valuation.toFixed(2),
-            momentum: momentum.toFixed(2),
-            risk: risk.toFixed(2),
-            score: score.toFixed(2)
+            valuation: formatFactorScore(valuation),
+            momentum: neutralFactorDisplay,
+            risk: neutralFactorDisplay,
+            score: formatFactorScore(valuation),
+            allocationMode: 'equal',
+            scoreMethod: '类别估值因子；ETF内部等权；动量/风险为中性占位'
         };
     });
-    
+
     // 红利股因子得分
     etfPool.dividend.forEach(etf => {
         // 股息率因子：股息率越高，得分越高
-        const dyScore = (dividendDy - 3) / (6 - 3); // 假设股息率范围3%-6%
-        const dyScoreClamped = Math.max(0, Math.min(1, dyScore));
-        // 股息率历史分位：假设为0.7
-        const dyPercentile = 0.7;
-        // 动量因子：假设为0.3
-        const momentum = 0.3;
-        // 风险因子：假设为0.8（红利股波动率较低）
-        const risk = 0.8;
-        // 综合得分
-        const score = 0.50 * dyScoreClamped + 0.20 * dyPercentile + 0.20 * momentum + 0.10 * risk;
+        const dyScore = clampScore((dividendDy - 3) / (6 - 3));
         scores[etf.code] = {
             name: etf.name,
             category: etf.category,
-            valuation: dyScoreClamped.toFixed(2),
-            momentum: momentum.toFixed(2),
-            risk: risk.toFixed(2),
-            score: score.toFixed(2)
+            valuation: formatFactorScore(dyScore),
+            momentum: neutralFactorDisplay,
+            risk: neutralFactorDisplay,
+            score: formatFactorScore(dyScore),
+            allocationMode: 'equal',
+            scoreMethod: '类别股息率因子；ETF内部等权；动量/风险为中性占位'
         };
     });
-    
+
     // 商品ETF因子得分
     etfPool.commodity.forEach(etf => {
-        // 估值因子：商品不适用PE，设为0.5
-        const valuation = 0.5;
         // 动量因子：商品价格动量百分比转换为0-1得分，-10%为0，0%为0.5，+10%为1
-        const momentum = Math.max(0, Math.min(1, 0.5 + commodityMomentum / 20));
-        // 风险因子：假设为0.4（商品波动率较高）
-        const risk = 0.4;
-        // 综合得分
-        const score = 0.20 * valuation + 0.50 * momentum + 0.30 * risk;
+        const momentum = clampScore(0.5 + commodityMomentum / 20);
         scores[etf.code] = {
             name: etf.name,
             category: etf.category,
-            valuation: valuation.toFixed(2),
-            momentum: momentum.toFixed(2),
-            risk: risk.toFixed(2),
-            score: score.toFixed(2)
+            valuation: '不适用',
+            momentum: formatFactorScore(momentum),
+            risk: neutralFactorDisplay,
+            score: formatFactorScore(momentum),
+            allocationMode: 'equal',
+            scoreMethod: '类别商品动量因子；ETF内部等权；估值不适用、风险为中性占位'
         };
     });
-    
+
     // 债券和现金得分
     [...etfPool.bond, ...etfPool.cash].forEach(etf => {
         scores[etf.code] = {
@@ -639,11 +1245,33 @@ function calculateEtfScores(growthValuationPercentile, dividendDy, commodityMome
             valuation: 'N/A',
             momentum: 'N/A',
             risk: 'N/A',
-            score: 'N/A'
+            score: 'N/A',
+            allocationMode: 'fixed',
+            scoreMethod: '不参与ETF内部评分'
         };
     });
-    
+
     return scores;
+}
+
+function calculateInternalWeights(etfs, baseWeight, etfScores) {
+    if (etfs.length === 0) {
+        return [];
+    }
+
+    const equalWeight = baseWeight / etfs.length;
+    const shouldUseEqualWeight = etfs.every(etf => etfScores[etf.code]?.allocationMode === 'equal');
+    if (shouldUseEqualWeight) {
+        return etfs.map(() => equalWeight);
+    }
+
+    const scoreValues = etfs.map(etf => parseFloat(etfScores[etf.code].score));
+    const totalScore = scoreValues.reduce((sum, score) => sum + (Number.isFinite(score) ? score : 0), 0);
+    if (totalScore <= 0) {
+        return etfs.map(() => equalWeight);
+    }
+
+    return scoreValues.map(score => ((Number.isFinite(score) ? score : 0) / totalScore) * baseWeight);
 }
 
 // 计算ETF标的智能权重分配
@@ -665,10 +1293,10 @@ function calculateEtfAllocations(stage, allocation, etfScores) {
         ...etf,
         score: parseFloat(etfScores[etf.code].score)
     }));
-    const growthTotalScore = growthScores.reduce((sum, etf) => sum + etf.score, 0);
-    
-    growthScores.forEach(etf => {
-        const weight = (etf.score / growthTotalScore) * baseWeights.growth;
+    const growthWeights = calculateInternalWeights(growthEtfs, baseWeights.growth, etfScores);
+
+    growthScores.forEach((etf, index) => {
+        const weight = growthWeights[index];
         etfAllocations.push({
             assetClass: '成长股',
             code: etf.code,
@@ -686,10 +1314,10 @@ function calculateEtfAllocations(stage, allocation, etfScores) {
         ...etf,
         score: parseFloat(etfScores[etf.code].score)
     }));
-    const dividendTotalScore = dividendScores.reduce((sum, etf) => sum + etf.score, 0);
-    
-    dividendScores.forEach(etf => {
-        const weight = (etf.score / dividendTotalScore) * baseWeights.dividend;
+    const dividendWeights = calculateInternalWeights(etfPool.dividend, baseWeights.dividend, etfScores);
+
+    dividendScores.forEach((etf, index) => {
+        const weight = dividendWeights[index];
         etfAllocations.push({
             assetClass: '红利股',
             code: etf.code,
@@ -707,10 +1335,10 @@ function calculateEtfAllocations(stage, allocation, etfScores) {
         ...etf,
         score: parseFloat(etfScores[etf.code].score)
     }));
-    const commodityTotalScore = commodityScores.reduce((sum, etf) => sum + etf.score, 0);
-    
-    commodityScores.forEach(etf => {
-        const weight = (etf.score / commodityTotalScore) * baseWeights.commodity;
+    const commodityWeights = calculateInternalWeights(etfPool.commodity, baseWeights.commodity, etfScores);
+
+    commodityScores.forEach((etf, index) => {
+        const weight = commodityWeights[index];
         etfAllocations.push({
             assetClass: '商品ETF',
             code: etf.code,
@@ -792,6 +1420,7 @@ function updateFactorTable(etfScores) {
             <td class="px-4 py-3 whitespace-nowrap">${scoreData.momentum}</td>
             <td class="px-4 py-3 whitespace-nowrap">${scoreData.risk}</td>
             <td class="px-4 py-3 whitespace-nowrap">${scoreData.score}</td>
+            <td class="px-4 py-3 text-xs text-gray-500">${scoreData.scoreMethod || '-'}</td>
         `;
         factorTable.appendChild(row);
     });
