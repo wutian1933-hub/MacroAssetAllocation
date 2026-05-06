@@ -90,6 +90,76 @@ class FetchDataExtractionTests(unittest.TestCase):
 
         self.assertEqual(fetch_data.extract_turnover_momentum(df), expected)
 
+    def test_extract_social_finance_trend_uses_recent_yoy_direction(self):
+        base = [100] * 12
+        df = pd.DataFrame(
+            {
+                "月份": [f"2025年{month:02d}月份" for month in range(1, 13)]
+                + [f"2026年{month:02d}月份" for month in range(1, 5)],
+                "社会融资规模增量": base + [101, 102, 104, 106],
+            }
+        )
+
+        self.assertEqual(fetch_data.extract_social_finance(df), 6.0)
+        self.assertEqual(fetch_data.extract_social_finance_trend(df), "up")
+
+        stable_df = df.copy()
+        stable_df["社会融资规模增量"] = base + [101.0, 101.1, 101.2, 101.3]
+        self.assertEqual(fetch_data.extract_social_finance_trend(stable_df), "stable")
+
+    def test_extract_ppi_trend_prefers_month_on_month(self):
+        df = pd.DataFrame(
+            {
+                "月份": ["2026年01月份", "2026年02月份", "2026年03月份"],
+                "当月同比增长": [-1.5, -1.3, -1.1],
+                "当月环比增长": [0.2, 0.1, 0.3],
+            }
+        )
+        self.assertEqual(fetch_data.extract_ppi_trend(df), "up")
+
+        down_df = df.copy()
+        down_df["当月环比增长"] = [-0.2, -0.1, -0.3]
+        self.assertEqual(fetch_data.extract_ppi_trend(down_df), "down")
+
+        stable_df = df.copy()
+        stable_df["当月环比增长"] = [0.05, -0.04, 0.02]
+        self.assertEqual(fetch_data.extract_ppi_trend(stable_df), "stable")
+
+    def test_extract_ppi_trend_falls_back_to_yoy_direction(self):
+        df = pd.DataFrame(
+            {
+                "月份": ["2026年01月份", "2026年02月份", "2026年03月份", "2026年04月份"],
+                "当月同比增长": [-2.0, -1.8, -1.6, -1.4],
+            }
+        )
+
+        self.assertEqual(fetch_data.extract_ppi_trend(df), "up")
+
+    def test_extract_bond_yield_trend_uses_twenty_day_bp_change(self):
+        dates = pd.date_range("2026-01-01", periods=21, freq="B")
+        up_df = pd.DataFrame(
+            {
+                "日期": dates,
+                "中国国债收益率10年": [2.0] * 20 + [2.11],
+            }
+        )
+        down_df = pd.DataFrame(
+            {
+                "日期": dates,
+                "中国国债收益率10年": [2.0] * 20 + [1.84],
+            }
+        )
+        stable_df = pd.DataFrame(
+            {
+                "日期": dates,
+                "中国国债收益率10年": [2.0] * 20 + [2.04],
+            }
+        )
+
+        self.assertEqual(fetch_data.extract_bond_yield_trend(up_df), "up")
+        self.assertEqual(fetch_data.extract_bond_yield_trend(down_df), "down")
+        self.assertEqual(fetch_data.extract_bond_yield_trend(stable_df), "stable")
+
     def test_extract_erp_percentile_uses_csi_pe_and_bond_yield_history(self):
         index_df = pd.DataFrame(
             {
@@ -130,6 +200,12 @@ class FetchDataExtractionTests(unittest.TestCase):
             "stock_zh_index_hist_csindex.*滚动市盈率.*当前列",
         ):
             fetch_data.extract_erp_percentile({"index": index_df, "bond": bond_df})
+
+    def test_calculate_market_sentiment_score_combines_turnover_and_erp(self):
+        self.assertEqual(fetch_data.calculate_market_sentiment_score(3.27, 49.1), 1)
+        self.assertEqual(fetch_data.calculate_market_sentiment_score(60, 10), 3)
+        self.assertEqual(fetch_data.calculate_market_sentiment_score(60, 85), 1)
+        self.assertEqual(fetch_data.calculate_market_sentiment_score(-25, 85), -3)
 
     def test_extract_growth_value_dispersion_uses_weighted_relative_returns(self):
         dates = pd.date_range("2026-01-01", periods=61, freq="B")
@@ -256,13 +332,25 @@ class FetchDataExtractionTests(unittest.TestCase):
                 return pd.DataFrame({"制造业-指数": [50.3]})
 
             def macro_china_shrzgm(self):
-                return pd.DataFrame({"社会融资规模增量": [100] * 12 + [110]})
+                return pd.DataFrame(
+                    {
+                        "月份": [f"2025年{month:02d}月份" for month in range(1, 13)]
+                        + [f"2026年{month:02d}月份" for month in range(1, 5)],
+                        "社会融资规模增量": [100] * 12 + [105, 106, 108, 110],
+                    }
+                )
 
             def macro_china_cpi(self):
                 return pd.DataFrame({"全国-同比增长": [1.0]})
 
             def macro_china_ppi(self):
-                return pd.DataFrame({"当月同比增长": [0.5]})
+                return pd.DataFrame(
+                    {
+                        "月份": ["2026年01月份", "2026年02月份", "2026年03月份"],
+                        "当月同比增长": [0.5, 0.5, 0.5],
+                        "当月环比增长": [0.1, 0.2, 0.3],
+                    }
+                )
 
             def macro_china_money_supply(self):
                 return pd.DataFrame(
@@ -329,10 +417,28 @@ class FetchDataExtractionTests(unittest.TestCase):
         self.assertEqual(data["sources"]["dividendYield"], "akshare")
         self.assertIn("commodityMomentum", data["indicators"])
         self.assertEqual(data["sources"]["commodityMomentum"], "akshare")
+        self.assertEqual(data["indicators"]["socialFinanceTrend"], "up")
+        self.assertEqual(data["indicators"]["ppiTrend"], "up")
+        self.assertEqual(data["indicators"]["bondYieldTrend"], "stable")
+        self.assertIn("marketSentimentScore", data["indicators"])
+        self.assertEqual(data["sources"]["marketSentimentScore"], "calculated")
+        self.assertEqual(
+            data["indicators"]["marketSentimentScore"],
+            fetch_data.calculate_market_sentiment_score(
+                data["indicators"]["turnoverMomentum"],
+                data["indicators"]["erp"],
+            ),
+        )
+        self.assertEqual(data["sources"]["socialFinanceTrend"], "akshare")
+        self.assertEqual(data["sources"]["ppiTrend"], "akshare")
+        self.assertEqual(data["sources"]["bondYieldTrend"], "akshare")
         self.assertNotIn("growthValuationPercentile", data["errors"])
         self.assertNotIn("growthPEPercentile", data["errors"])
         self.assertNotIn("dividendYield", data["errors"])
         self.assertNotIn("commodityMomentum", data["errors"])
+        self.assertNotIn("socialFinanceTrend", data["errors"])
+        self.assertNotIn("ppiTrend", data["errors"])
+        self.assertNotIn("bondYieldTrend", data["errors"])
         self.assertNotIn("growthPEPercentile", data["notes"])
         self.assertNotIn("dividendYield", data["notes"])
         self.assertNotIn("commodityMomentum", data["notes"])
