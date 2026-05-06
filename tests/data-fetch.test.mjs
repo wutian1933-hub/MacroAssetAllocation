@@ -35,10 +35,13 @@ test('getAllMacroData reads data.json once and extracts all indicators', async (
                     indicators: {
                         pmi: 50.3,
                         socialFinance: -22.56,
+                        socialFinanceTrend: 'down',
                         cpi: 1,
                         ppi: 0.5,
+                        ppiTrend: 'up',
                         m1m2: -3.4,
                         bondYield: 1.7473,
+                        bondYieldTrend: 'stable',
                         turnoverMomentum: 3.27,
                         erp: 49.1,
                         growthValueDispersion: 7.89,
@@ -61,6 +64,10 @@ test('getAllMacroData reads data.json once and extracts all indicators', async (
     assert.equal(data.growthPEPercentile, 97.59);
     assert.equal(data.dividendYield, 5.2);
     assert.equal(data.commodityMomentum, 3.6);
+    assert.equal(data.marketSentimentScore, 1);
+    assert.equal(data.socialFinanceTrend, 'down');
+    assert.equal(data.ppiTrend, 'up');
+    assert.equal(data.bondYieldTrend, 'stable');
     assert.equal(data.hasError, false);
 });
 
@@ -75,6 +82,10 @@ test('getAllMacroData reports one clear error when data file cannot be read', as
 
     assert.equal(fetchCount, 1);
     assert.equal(data.hasError, true);
+    assert.equal(data.socialFinanceTrend, 'stable');
+    assert.equal(data.ppiTrend, 'stable');
+    assert.equal(data.bondYieldTrend, 'stable');
+    assert.equal(data.marketSentimentScore, 1);
     assert.equal(data.errors.length, 1);
     assert.match(data.errors[0], /无法读取 data\.json/);
     assert.match(data.errors[0], /GitHub Pages/);
