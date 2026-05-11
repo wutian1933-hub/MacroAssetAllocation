@@ -1,10 +1,10 @@
 {
-  "update_date": "2026-05-10",
+  "update_date": "2026-05-11",
   "indicators": {
     "pmi": 50.3,
     "socialFinance": -22.56,
-    "cpi": 1.0,
-    "ppi": 0.5,
+    "cpi": 1.2,
+    "ppi": 2.8,
     "m1m2": -3.4,
     "bondYield": 1.767,
     "turnoverMomentum": 14.88,
