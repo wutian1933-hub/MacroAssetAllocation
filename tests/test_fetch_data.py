@@ -55,6 +55,16 @@ class FetchDataExtractionTests(unittest.TestCase):
             1.82,
         )
 
+    def test_extract_ppi_sorts_by_month_before_taking_latest_value(self):
+        df = pd.DataFrame(
+            {
+                "月份": ["2026年03月份", "2026年04月份", "2026年02月份"],
+                "当月同比增长": [0.5, 2.8, -0.9],
+            }
+        )
+
+        self.assertEqual(fetch_data.extract_ppi(df), 2.8)
+
     def test_fetch_indicator_records_item_error_and_uses_default(self):
         result = fetch_data.fetch_indicator(
             key="pmi",
