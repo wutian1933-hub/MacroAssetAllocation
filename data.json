@@ -1,25 +1,25 @@
 {
-  "update_date": "2026-05-06",
+  "update_date": "2026-05-14",
   "indicators": {
     "pmi": 50.3,
     "socialFinance": -22.56,
-    "cpi": 1.0,
-    "ppi": 0.5,
+    "cpi": 1.2,
+    "ppi": 2.8,
     "m1m2": -3.4,
-    "bondYield": 1.7473,
-    "turnoverMomentum": 3.27,
-    "erp": 49.1,
-    "marketSentimentScore": 1,
-    "growthValueDispersion": 7.89,
-    "growthValuationPercentile": 97.59,
-    "dividendYield": 4.79,
-    "commodityMomentum": -0.39,
+    "bondYield": 1.7514,
+    "turnoverMomentum": 21.52,
+    "erp": 48.65,
+    "growthValueDispersion": 20.34,
+    "growthValuationPercentile": 98.66,
+    "dividendYield": 4.88,
+    "commodityMomentum": 4.46,
     "socialFinanceTrend": "down",
     "ppiTrend": "up",
     "bondYieldTrend": "stable",
-    "turnover": 3.27,
-    "turnoverYoY": 3.27,
-    "growthPEPercentile": 97.59
+    "turnover": 21.52,
+    "turnoverYoY": 21.52,
+    "growthPEPercentile": 98.66,
+    "marketSentimentScore": 1
   },
   "sources": {
     "pmi": "akshare",
@@ -30,7 +30,6 @@
     "bondYield": "akshare",
     "turnoverMomentum": "akshare",
     "erp": "akshare",
-    "marketSentimentScore": "calculated",
     "growthValueDispersion": "akshare",
     "growthValuationPercentile": "akshare",
     "dividendYield": "akshare",
@@ -40,7 +39,8 @@
     "bondYieldTrend": "akshare",
     "turnover": "akshare",
     "turnoverYoY": "akshare",
-    "growthPEPercentile": "akshare"
+    "growthPEPercentile": "akshare",
+    "marketSentimentScore": "calculated"
   },
   "errors": {},
   "notes": {}
