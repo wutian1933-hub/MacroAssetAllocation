@@ -65,6 +65,42 @@ class FetchDataExtractionTests(unittest.TestCase):
 
         self.assertEqual(fetch_data.extract_ppi(df), 2.8)
 
+    def test_monthly_extractors_sort_by_month_before_taking_latest_value(self):
+        self.assertEqual(
+            fetch_data.extract_pmi(
+                pd.DataFrame(
+                    {
+                        "月份": ["2026年03月份", "2026年04月份", "2026年02月份"],
+                        "制造业-指数": [50.0, 50.3, 49.8],
+                    }
+                )
+            ),
+            50.3,
+        )
+        self.assertEqual(
+            fetch_data.extract_cpi(
+                pd.DataFrame(
+                    {
+                        "月份": ["2026年03月份", "2026年04月份", "2026年02月份"],
+                        "全国-同比增长": [1.0, 1.2, 0.8],
+                    }
+                )
+            ),
+            1.2,
+        )
+        self.assertEqual(
+            fetch_data.extract_m1m2(
+                pd.DataFrame(
+                    {
+                        "月份": ["2026年03月份", "2026年04月份", "2026年02月份"],
+                        "货币(M1)-同比增长": [5.1, 5.5, 4.9],
+                        "货币和准货币(M2)-同比增长": [8.5, 8.7, 8.4],
+                    }
+                )
+            ),
+            -3.2,
+        )
+
     def test_fetch_indicator_records_item_error_and_uses_default(self):
         result = fetch_data.fetch_indicator(
             key="pmi",
@@ -116,6 +152,19 @@ class FetchDataExtractionTests(unittest.TestCase):
         stable_df = df.copy()
         stable_df["社会融资规模增量"] = base + [101.0, 101.1, 101.2, 101.3]
         self.assertEqual(fetch_data.extract_social_finance_trend(stable_df), "stable")
+
+    def test_extract_social_finance_sorts_compact_yyyymm_months(self):
+        months = [f"2025{month:02d}" for month in range(4, 13)] + [
+            f"2026{month:02d}" for month in range(1, 5)
+        ]
+        df = pd.DataFrame(
+            {
+                "月份": months,
+                "社会融资规模增量": [100] * 12 + [125],
+            }
+        ).iloc[[12, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]]
+
+        self.assertEqual(fetch_data.extract_social_finance(df), 25.0)
 
     def test_extract_ppi_trend_prefers_month_on_month(self):
         df = pd.DataFrame(
