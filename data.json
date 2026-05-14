@@ -33,7 +33,7 @@
     "growthValueDispersion": "akshare",
     "growthValuationPercentile": "akshare",
     "dividendYield": "akshare",
-    "commodityMomentum": "ccidx_fallback",
+    "commodityMomentum": "akshare",
     "socialFinanceTrend": "akshare",
     "ppiTrend": "akshare",
     "bondYieldTrend": "akshare",
