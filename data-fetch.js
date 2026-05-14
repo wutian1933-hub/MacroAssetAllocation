@@ -8,23 +8,54 @@ class MacroDataFetcher {
     
     // 从data.json文件获取数据
     async fetchDataFromJson() {
+        const githubRawUrl = 'https://raw.githubusercontent.com/wutian1933-hub/MacroAssetAllocation/master/data.json';
         try {
-            // 首先尝试从当前目录获取
-            let response = await fetch('data.json');
-            if (!response.ok) {
-                // 如果失败，尝试从GitHub原始文件URL获取
-                const githubRawUrl = 'https://raw.githubusercontent.com/wutian1933-hub/MacroAssetAllocation/master/data.json';
-                response = await fetch(githubRawUrl);
-                if (!response.ok) {
-                    throw new Error('获取数据文件失败');
-                }
+            const pagesResult = await this.fetchJsonSource('data.json');
+            const rawResult = await this.fetchJsonSource(githubRawUrl);
+            if (pagesResult.success && rawResult.success) {
+                return {
+                    success: true,
+                    data: this.pickNewestData(pagesResult.data, rawResult.data),
+                };
             }
-            const data = await response.json();
-            return { success: true, data: data };
+            if (rawResult.success) {
+                return rawResult;
+            }
+            if (pagesResult.success) {
+                return pagesResult;
+            }
+            throw new Error(`${pagesResult.error}; ${rawResult.error}`);
         } catch (error) {
             console.error('从data.json获取数据失败:', error);
             return { success: false, error: error.message };
         }
+    }
+
+    async fetchJsonSource(url) {
+        try {
+            const response = await fetch(url);
+            if (!response.ok) {
+                throw new Error(`${url} 返回状态 ${response.status}`);
+            }
+            const data = await response.json();
+            return { success: true, data };
+        } catch (error) {
+            return { success: false, error: `${url} 获取失败: ${error.message}` };
+        }
+    }
+
+    pickNewestData(pagesData, rawData) {
+        const pagesTime = this.parseUpdateDate(pagesData && pagesData.update_date);
+        const rawTime = this.parseUpdateDate(rawData && rawData.update_date);
+        if (rawTime !== null && (pagesTime === null || rawTime > pagesTime)) {
+            return rawData;
+        }
+        return pagesData;
+    }
+
+    parseUpdateDate(value) {
+        const time = Date.parse(value || '');
+        return Number.isNaN(time) ? null : time;
     }
 
     getIndicator(indicators, keys, defaultValue) {
