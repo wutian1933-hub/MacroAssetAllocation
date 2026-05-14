@@ -112,10 +112,6 @@ def _latest_non_null(df: pd.DataFrame, column: str) -> float:
     return float(values.iloc[0])
 
 
-def extract_pmi(df: pd.DataFrame) -> float:
-    return _latest_non_null(df, "制造业-指数")
-
-
 def _parse_date_like(series: pd.Series) -> pd.Series:
     normalized = (
         series.astype(str)
@@ -124,6 +120,7 @@ def _parse_date_like(series: pd.Series) -> pd.Series:
         .str.replace("月份", "", regex=False)
         .str.replace("月", "", regex=False)
     )
+    normalized = normalized.str.replace(r"^(\d{4})(\d{2})$", r"\1-\2-01", regex=True)
     normalized = normalized.str.replace(r"^(\d{4})(\d{2})(\d{2})$", r"\1-\2-\3", regex=True)
     normalized = normalized.str.replace(r"^(\d{4})-(\d{1,2})$", r"\1-\2-01", regex=True)
     return pd.to_datetime(normalized, format="%Y-%m-%d", errors="coerce")
@@ -139,6 +136,23 @@ def _sort_by_date_like(df: pd.DataFrame) -> pd.DataFrame:
     if prepared["_sort_date"].notna().any():
         prepared = prepared.sort_values("_sort_date")
     return prepared.drop(columns=["_sort_date"])
+
+
+def _latest_by_date_like(df: pd.DataFrame, column: str) -> float:
+    prepared = _sort_by_date_like(df)
+    if prepared.empty:
+        raise ValueError("数据为空")
+    if column not in prepared.columns:
+        raise KeyError(f"缺少可用列: {column}; 当前列: {', '.join(map(str, prepared.columns))}")
+
+    values = pd.to_numeric(prepared[column], errors="coerce").dropna()
+    if values.empty:
+        raise ValueError(f"列 {column} 没有可用数值")
+    return float(values.iloc[-1])
+
+
+def extract_pmi(df: pd.DataFrame) -> float:
+    return _latest_by_date_like(df, "制造业-指数")
 
 
 def _social_finance_yoy_series(df: pd.DataFrame) -> pd.Series:
@@ -190,18 +204,11 @@ def extract_social_finance_trend(df: pd.DataFrame) -> str:
 
 
 def extract_cpi(df: pd.DataFrame) -> float:
-    return _latest_non_null(df, "全国-同比增长")
+    return _latest_by_date_like(df, "全国-同比增长")
 
 
 def extract_ppi(df: pd.DataFrame) -> float:
-    prepared = _sort_by_date_like(df)
-    if "当月同比增长" not in prepared.columns:
-        raise KeyError(f"缺少可用列: 当月同比增长; 当前列: {', '.join(map(str, prepared.columns))}")
-
-    values = pd.to_numeric(prepared["当月同比增长"], errors="coerce").dropna()
-    if values.empty:
-        raise ValueError("列 当月同比增长 没有可用数值")
-    return float(values.iloc[-1])
+    return _latest_by_date_like(df, "当月同比增长")
 
 
 def extract_ppi_trend(df: pd.DataFrame) -> str:
@@ -235,8 +242,9 @@ def extract_ppi_trend(df: pd.DataFrame) -> str:
 
 
 def extract_m1m2(df: pd.DataFrame) -> float:
-    m1 = _latest_non_null(df, "货币(M1)-同比增长")
-    m2 = _latest_non_null(df, "货币和准货币(M2)-同比增长")
+    prepared = _sort_by_date_like(df)
+    m1 = _latest_by_date_like(prepared, "货币(M1)-同比增长")
+    m2 = _latest_by_date_like(prepared, "货币和准货币(M2)-同比增长")
     return round(m1 - m2, 2)
 
 
