@@ -194,7 +194,14 @@ def extract_cpi(df: pd.DataFrame) -> float:
 
 
 def extract_ppi(df: pd.DataFrame) -> float:
-    return _latest_non_null(df, "当月同比增长")
+    prepared = _sort_by_date_like(df)
+    if "当月同比增长" not in prepared.columns:
+        raise KeyError(f"缺少可用列: 当月同比增长; 当前列: {', '.join(map(str, prepared.columns))}")
+
+    values = pd.to_numeric(prepared["当月同比增长"], errors="coerce").dropna()
+    if values.empty:
+        raise ValueError("列 当月同比增长 没有可用数值")
+    return float(values.iloc[-1])
 
 
 def extract_ppi_trend(df: pd.DataFrame) -> str:
