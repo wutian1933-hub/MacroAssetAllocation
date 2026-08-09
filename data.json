@@ -1,9 +1,9 @@
 {
-  "update_date": "2026-08-08",
+  "update_date": "2026-08-09",
   "indicators": {
     "pmi": 49.2,
     "socialFinance": -46.16,
-    "cpi": 1.0,
+    "cpi": 0.5,
     "ppi": 4.1,
     "m1m2": -4.0,
     "bondYield": 1.7114,
