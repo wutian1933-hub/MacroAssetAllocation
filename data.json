@@ -1,29 +1,29 @@
 {
-  "update_date": "2026-08-19",
+  "update_date": "2026-08-20",
   "indicators": {
     "pmi": 49.2,
-    "socialFinance": 9.8,
+    "socialFinance": -46.16,
     "cpi": 0.5,
     "ppi": 3.5,
     "m1m2": -3.7,
-    "bondYield": 1.6864,
-    "turnoverMomentum": -13.32,
-    "erp": 66.57,
-    "growthValueDispersion": -0.7,
-    "growthValuationPercentile": 99.23,
-    "dividendYield": 4.17,
-    "commodityMomentum": -0.4,
+    "bondYield": 1.6831,
+    "turnoverMomentum": -8.56,
+    "erp": 72.42,
+    "growthValueDispersion": -5.92,
+    "growthValuationPercentile": 98.73,
+    "dividendYield": 4.16,
+    "commodityMomentum": -1.0,
     "socialFinanceTrend": "down",
     "ppiTrend": "up",
     "bondYieldTrend": "stable",
-    "turnover": -13.32,
-    "turnoverYoY": -13.32,
-    "growthPEPercentile": 99.23,
+    "turnover": -8.56,
+    "turnoverYoY": -8.56,
+    "growthPEPercentile": 98.73,
     "marketSentimentScore": -1
   },
   "sources": {
     "pmi": "akshare",
-    "socialFinance": "default",
+    "socialFinance": "akshare",
     "cpi": "akshare",
     "ppi": "akshare",
     "m1m2": "akshare",
@@ -42,8 +42,6 @@
     "growthPEPercentile": "akshare",
     "marketSentimentScore": "calculated"
   },
-  "errors": {
-    "socialFinance": "社融同比代理指标获取失败: HTTPSConnectionPool(host='data.mofcom.gov.cn', port=443): Max retries exceeded with url: /datamofcom/front/gnmy/shrzgmQuery (Caused by SSLError(SSLZeroReturnError(6, 'TLS/SSL connection has been closed (EOF) (_ssl.c:1147)')))"
-  },
+  "errors": {},
   "notes": {}
 }
