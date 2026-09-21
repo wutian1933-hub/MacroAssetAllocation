@@ -1,12 +1,12 @@
 {
-  "update_date": "2026-09-20",
+  "update_date": "2026-09-21",
   "indicators": {
     "pmi": 49.8,
     "socialFinance": -46.16,
     "cpi": 0.8,
     "ppi": 3.8,
     "m1m2": -3.4,
-    "bondYield": 1.682,
+    "bondYield": 1.6818,
     "turnoverMomentum": -8.69,
     "erp": 73.63,
     "growthValueDispersion": -10.24,
