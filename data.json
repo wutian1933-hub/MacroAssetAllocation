@@ -1,5 +1,5 @@
 {
-  "update_date": "2026-10-07",
+  "update_date": "2026-10-08",
   "indicators": {
     "pmi": 50.1,
     "socialFinance": -46.16,
@@ -12,7 +12,7 @@
     "growthValueDispersion": -11.76,
     "growthValuationPercentile": 97.04,
     "dividendYield": 4.23,
-    "commodityMomentum": 0.0,
+    "commodityMomentum": 3.46,
     "socialFinanceTrend": "down",
     "ppiTrend": "stable",
     "bondYieldTrend": "stable",
@@ -33,7 +33,7 @@
     "growthValueDispersion": "akshare",
     "growthValuationPercentile": "akshare",
     "dividendYield": "akshare",
-    "commodityMomentum": "default",
+    "commodityMomentum": "akshare",
     "socialFinanceTrend": "akshare",
     "ppiTrend": "akshare",
     "bondYieldTrend": "akshare",
@@ -42,8 +42,6 @@
     "growthPEPercentile": "akshare",
     "marketSentimentScore": "calculated"
   },
-  "errors": {
-    "commodityMomentum": "中证商品价格动量获取失败: AkShare futures_index_ccidx 获取失败: Expecting value: line 1 column 1 (char 0); 中证商品指数备用接口获取失败: HTTPConnectionPool(host='www.ccidx.com', port=80): Read timed out. (read timeout=30)"
-  },
+  "errors": {},
   "notes": {}
 }
