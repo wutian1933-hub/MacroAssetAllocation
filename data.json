@@ -1,24 +1,24 @@
 {
-  "update_date": "2026-10-19",
+  "update_date": "2026-10-20",
   "indicators": {
     "pmi": 50.1,
     "socialFinance": -46.16,
     "cpi": 0.9,
     "ppi": 5.0,
     "m1m2": -4.0,
-    "bondYield": 1.648,
-    "turnoverMomentum": -7.13,
-    "erp": 88.96,
-    "growthValueDispersion": -18.95,
-    "growthValuationPercentile": 89.69,
-    "dividendYield": 3.2,
-    "commodityMomentum": -0.18,
+    "bondYield": 1.6497,
+    "turnoverMomentum": -7.09,
+    "erp": 88.2,
+    "growthValueDispersion": -16.89,
+    "growthValuationPercentile": 89.07,
+    "dividendYield": 4.13,
+    "commodityMomentum": 0.53,
     "socialFinanceTrend": "down",
     "ppiTrend": "up",
     "bondYieldTrend": "stable",
-    "turnover": -7.13,
-    "turnoverYoY": -7.13,
-    "growthPEPercentile": 89.69,
+    "turnover": -7.09,
+    "turnoverYoY": -7.09,
+    "growthPEPercentile": 89.07,
     "marketSentimentScore": -2
   },
   "sources": {
@@ -32,7 +32,7 @@
     "erp": "akshare",
     "growthValueDispersion": "akshare",
     "growthValuationPercentile": "akshare",
-    "dividendYield": "default",
+    "dividendYield": "akshare",
     "commodityMomentum": "akshare",
     "socialFinanceTrend": "akshare",
     "ppiTrend": "akshare",
@@ -42,8 +42,6 @@
     "growthPEPercentile": "akshare",
     "marketSentimentScore": "calculated"
   },
-  "errors": {
-    "dividendYield": "中证红利股息率获取失败: [Errno 104] Connection reset by peer"
-  },
+  "errors": {},
   "notes": {}
 }
